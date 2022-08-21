@@ -4,8 +4,7 @@ use std::process;
 use std::ffi::OsString;
 use pico_args;
 
-#[cfg(feature = "yes")]
-mod yes;
+include!(concat!(env!("OUT_DIR"), "/exec_command.rs"));
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const HELP: &str = "\
@@ -24,20 +23,7 @@ to that command. Most toybox commands also understand:
 The filename \"-\" means stdin/stdout, and \"--\" stops argument parsing.
 ";
 
-
-fn exec_command(command_name: &str, args: Vec<OsString>) -> i32 {
-    return match command_name {
-        #[cfg(feature = "yes")]
-        "yes" => yes::yes_main(args),
-        _ => 127 // Command not found
-    };
-}
-
-
 fn main() {
-
-    #[cfg(feature = "yes")]
-    println!("hello world");
 
     let mut args: Vec<OsString> = args_os().collect();
 
