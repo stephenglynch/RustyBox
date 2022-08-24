@@ -8,7 +8,9 @@ readme = "README.md"
 repository = "https://github.com/stephenglynch/RustyBox"
 
 [features]
-default = ["yes-util"]
+default = ["false-util", "true-util", "yes-util"]
+false-util = []
+true-util = []
 yes-util = []
 
 [dependencies]
