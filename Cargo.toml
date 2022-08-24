@@ -1,8 +1,21 @@
 [package]
-name = "RustyBox"
+name = "rustybox"
 version = "0.0.1"
 edition = "2021"
+authors = ["Stephen Lynch <stepheng.lynch@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/stephenglynch/RustyBox"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["basename-util", "false-util", "true-util", "yes-util"]
+basename-util = []
+false-util = []
+true-util = []
+yes-util = []
 
 [dependencies]
+pico-args = "0.5.0"
+
+[build-dependencies]
+regex = "1.6.0"
