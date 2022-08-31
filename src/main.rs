@@ -1,7 +1,9 @@
 use std::env::args_os;
+use std::error::Error;
 use std::path::Path;
 use std::process;
 use std::ffi::OsString;
+use std::process::ExitCode;
 use pico_args;
 
 include!(concat!(env!("OUT_DIR"), "/exec_command.rs"));
@@ -23,7 +25,7 @@ to that command. Most toybox commands also understand:
 The filename \"-\" means stdin/stdout, and \"--\" stops argument parsing.
 ";
 
-fn main() {
+fn main() -> Result<ExitCode, Box<dyn Error>> {
 
     let mut args: Vec<OsString> = args_os().collect();
 
@@ -54,6 +56,5 @@ fn main() {
 
     // If we get to here we have a command
     let command_name = args.remove(0).into_string().unwrap();
-    let ret = exec_command(&command_name, args);
-    process::exit(ret);
+    exec_command(&command_name, args)
 }

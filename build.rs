@@ -3,6 +3,7 @@
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::process::ExitCode;
 use regex;
 
 fn get_utils() -> Vec<String> {
@@ -34,15 +35,15 @@ fn create_exec_function(utils: &Vec<String>) -> String {
     ).collect::<Vec<String>>().join("\n\n");
     
     format!("
-    pub fn exec_command(command_name: &str, args: Vec<OsString>) -> i32 {{
-        return match command_name {{
+    pub fn exec_command(command_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {{
+        match command_name {{
             {}
-            _ => 127 // Command not found
+            _ => Ok(ExitCode::from(127)) // Command not found
         }}
     }}", entries)
 }
 
-fn main() {
+fn main() -> () {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("exec_command.rs");
     let utils = get_utils();
