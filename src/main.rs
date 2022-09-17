@@ -6,6 +6,8 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 use pico_args;
 
+mod io_util;
+
 include!(concat!(env!("OUT_DIR"), "/exec_command.rs"));
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

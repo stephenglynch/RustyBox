@@ -1,14 +1,10 @@
 use std::error::Error;
 use std::process::ExitCode;
 use std::ffi::{OsString, OsStr};
-use std::io::{stdout, Write, self};
 use std::os::unix::prelude::OsStrExt;
 
+use crate::io_util::write_line;
 
-fn write_line(s: &[u8]) -> io::Result<()> {
-    stdout().write_all(s)?;
-    stdout().write_all("\n".as_bytes())
-}
 
 pub fn yes_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut yes_val = OsString::from("y");

@@ -1,8 +1,9 @@
 use std::ffi::{OsString, OsStr};
-use std::io::{stdout, Write, self};
 use std::os::unix::prelude::OsStrExt;
 use std::path::Path;
-
+use std::process::ExitCode;
+use std::error::Error;
+use crate::io_util::write_line;
 
 fn strip_suffix<'a, 'b>(s: &'a OsStr, suffix: &'b OsStr) -> &'a OsStr {
     let s = s.as_bytes();
@@ -13,20 +14,15 @@ fn strip_suffix<'a, 'b>(s: &'a OsStr, suffix: &'b OsStr) -> &'a OsStr {
     }
 }
 
-fn write_line(s: &[u8]) -> io::Result<()> {
-    stdout().write_all(s)?;
-    stdout().write_all("\n".as_bytes())
-}
-
-pub fn basename_main(args: Vec<OsString>) -> i32 {
+pub fn basename_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     if args.len() == 0 {
         println!("basename: missing operand");
-        return 1;
+        return Ok(ExitCode::FAILURE);
     }
 
     if args.len() > 2 {
         println!("basename: too many operands");
-        return 1;
+        return Ok(ExitCode::FAILURE);
     }
 
     let empty = OsString::from("");
@@ -42,6 +38,6 @@ pub fn basename_main(args: Vec<OsString>) -> i32 {
     // Remove suffix
     let basename = strip_suffix(file_name, suffix);
 
-    write_line(basename.as_bytes());
-    return 0;
+    write_line(basename.as_bytes())?;
+    Ok(ExitCode::SUCCESS)
 }
