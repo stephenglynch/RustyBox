@@ -4,11 +4,15 @@ RustyBox is intended to be a project that fufills a similar  roll as BusyBox or
 ToyBox. That is, to provide a basic set of command line utilities to run a 
 useable command line. 
 
-It's worth saying from the get go this is not initially a serious project, but
-my attempt at learning Rust and maybe some other things along the way. 
+It's worth saying from the get go this is not really intended as a serious 
+project, but my attempt at having a long running Rust project I can dip into
+ and learn some other unix-y things along the way. 
 
 Design decisions will be largely guided by Rob Langley's journey in building
 ToyBox.
+
+Implementations of various commands, in the first instance, will be aiming to
+meet the most basic POSIX compliance definition.
 
 ## Installation
 
