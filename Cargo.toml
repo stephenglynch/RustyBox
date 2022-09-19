@@ -8,15 +8,28 @@ readme = "README.md"
 repository = "https://github.com/stephenglynch/RustyBox"
 
 [features]
-default = ["basename-util", "echo-util", "false-util", "true-util", "yes-util"]
+default = ["basename-util", "echo-util", "false-util", "true-util", 
+    "yes-util"]
 basename-util = []
 echo-util = []
 false-util = []
+sh-util = []
 true-util = []
 yes-util = []
 
 [dependencies]
 pico-args = "0.5.0"
+nom = "7.1.1"
+
+[dev-dependencies]
+assert_cmd = "2.0.4"
 
 [build-dependencies]
 regex = "1.6.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+codegen-units = 1
+strip = true

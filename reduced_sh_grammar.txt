@@ -1,0 +1,76 @@
+%start  complete_command
+%%
+complete_command : list separator
+                 | list
+                 ;
+list             : list separator_op and_or
+                 |                   and_or
+                 ;
+and_or           :                         pipeline
+                 | and_or AND_IF linebreak pipeline
+                 | and_or OR_IF  linebreak pipeline
+                 ;
+pipeline         :      pipe_sequence
+                 | Bang pipe_sequence
+                 ;
+pipe_sequence    :                             command
+                 | pipe_sequence '|' linebreak command
+                 ;
+command          : simple_command
+                 | compound_command
+                 ;
+compound_command : brace_group
+                 | subshell
+                 | if_clause
+                 ;
+subshell         : '(' compound_list ')'
+                 ;
+compound_list    :              term
+                 | newline_list term
+                 |              term separator
+                 | newline_list term separator
+                 ;
+term             : term separator and_or
+                 |                and_or
+                 ;
+if_clause        : If compound_list Then compound_list else_part Fi
+                 | If compound_list Then compound_list           Fi
+                 ;
+else_part        : Elif compound_list Then else_part
+                 | Else compound_list
+                 ;
+brace_group      : Lbrace compound_list Rbrace
+                 ;
+simple_command   : cmd_prefix cmd_word cmd_suffix
+                 | cmd_prefix cmd_word
+                 | cmd_prefix
+                 | cmd_name cmd_suffix
+                 | cmd_name
+                 ;
+cmd_name         : WORD                   /* Apply rule 7a */
+                 ;
+cmd_word         : WORD                   /* Apply rule 7b */
+                 ;
+cmd_prefix       :            ASSIGNMENT_WORD
+                 | cmd_prefix ASSIGNMENT_WORD
+                 ;
+cmd_suffix       :            WORD
+                 | cmd_suffix WORD
+                 ;
+filename         : WORD                      /* Apply rule 2 */
+                 ;
+newline_list     :              NEWLINE
+                 | newline_list NEWLINE
+                 ;
+linebreak        : newline_list
+                 | /* empty */
+                 ;
+separator_op     : '&'
+                 | ';'
+                 ;
+separator        : separator_op linebreak
+                 | newline_list
+                 ;
+sequential_sep   : ';' linebreak
+                 | newline_list
+                 ;
