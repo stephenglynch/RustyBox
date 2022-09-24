@@ -213,6 +213,11 @@ fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
     }))
 }
 
+fn full_command(input: &[u8]) -> IResult<&[u8], Command> {
+    let (input , cmd) = simple_command(input)?;
+    Ok((input, Command::SimpleCommand(cmd)))
+}
+
 pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
 }
