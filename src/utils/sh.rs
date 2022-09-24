@@ -4,7 +4,7 @@ use nom::{
     character::complete::{alphanumeric1 as alphanumeric, char, one_of},
     combinator::{cut, map, opt, value},
     error::{context, convert_error, ContextError, ErrorKind, ParseError, VerboseError},
-    multi::separated_list0,
+    multi::{separated_list0, many0, many1},
     number::complete::double,
     sequence::{delimited, preceded, separated_pair, terminated},
     Err, IResult, FindToken, FindSubstring, Offset
@@ -14,6 +14,14 @@ use std::process::ExitCode;
 use std::error::Error;
 
 type Script = Vec<CompleteCommand>;
+
+enum Token {
+    Word(Vec<u8>),
+    AssignmentWord(Vec<u8>, Vec<u8>),
+    Name(Vec<u8>),
+    Newline,
+    LogicalOp(LogicalOp)
+}
 
 struct CompleteCommand {
     expression: Expression,
@@ -44,13 +52,15 @@ enum Command {
     SimpleCommand(SimpleCommand)
 }
 
+#[derive(Debug, PartialEq)]
 struct AssignmentWord {
     name: Vec<u8>,
     value: Vec<u8>
 }
 
 struct SimpleCommand {
-    command_name: Vec<u8>,
+    assignment_words: Vec<AssignmentWord>,
+    command_name: Option<Vec<u8>>,
     args: Vec<Vec<u8>>
 }
 
@@ -97,7 +107,7 @@ fn after_comment(s: &[u8]) -> &[u8] {
     return b"";
 }
 
-fn token(input: &[u8]) -> IResult<&[u8], &[u8]> {
+fn raw_token(input: &[u8]) -> IResult<&[u8], &[u8]> {
     // Initialise with maximum size of token
     let mut is_operator = false;
     let mut tok_start = 0;
@@ -174,27 +184,33 @@ fn token(input: &[u8]) -> IResult<&[u8], &[u8]> {
 
 
 // fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
-//     let (input, cmd_name) = token(input)?;
-//     let args = Vec::new();
+//     let (input, assignment_words) = many0(assignment_word)(input)?;
+//     let (input, cmd_name) = opt(raw_token)(input)?;
+//     let (input, args) = many0(raw_token)(input)?;
+//     Ok((input, SimpleCommand {
+//         assignment_words: assignment_words,
+//         command_name: cmd_name,
+//         args: args
+//     }))
 // }
 
 //pub fn assignment_word<'a, E: ParseError<&'a [u8]>>(input: &'a [u8]) -> IResult<&'a [u8], AssignmentWord, E> {
-// pub fn assignment_word(input: &Vec<u8>) -> IResult<&[u8], AssignmentWord> {
-//     let (input, tok) = token(input)?;
-//     let (_, name) = take_until1(b"=".as_ref())(tok.as_ref())?;
-//     let value = &input[1..];
-//     Ok((input, AssignmentWord {
-//         name: name.to_vec(),
-//         value: value.to_vec()
-//     }))
-// }
+fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
+    let (input, tok) = raw_token(input)?;
+    let (remaining, name) = take_until1(b"=".as_ref())(tok.as_ref())?;
+    let value = &remaining[1..];
+    Ok((input, AssignmentWord {
+        name: name.to_vec(),
+        value: value.to_vec()
+    }))
+}
 
 pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
 }
 
 mod tests {
-    use super::token;
+    use super::raw_token;
     use std::str;
 
     macro_rules! test_token {
@@ -202,7 +218,7 @@ mod tests {
             #[test]
             fn $test_name() {
                 let test_string = $test_string.as_bytes().to_vec();
-                let (remaining, tok) = token(&test_string).unwrap();
+                let (remaining, tok) = raw_token(&test_string).unwrap();
                 let remaining = str::from_utf8(&remaining).unwrap();
                 let tok = str::from_utf8(&tok).unwrap();
                 assert_eq!(tok, $expected_tok);
@@ -229,4 +245,16 @@ mod tests {
     test_token!(test_newline2, "\n\nfoo", "\n", "\nfoo");
     test_token!(test_comment, "#foo\nbar", "\n", "bar");
     test_token!(test_comment2, "foo#bar\n", "foo#bar\n", "");
+
+    use super::{assignment_word, AssignmentWord};
+    #[test]
+    fn test_assignment_word() {
+        let input = b"foo=bar";
+        let expected = AssignmentWord {
+            name: b"foo".to_vec(),
+            value: b"bar".to_vec()
+        };
+        let (_, actual) = assignment_word(input).unwrap();
+        assert_eq!(actual, expected);
+    }
 }
