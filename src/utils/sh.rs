@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_until1},
     character::complete::{alphanumeric1 as alphanumeric, char, one_of},
-    combinator::{cut, map, opt, value},
+    combinator::{cut, map, opt, value, fail},
     error::{context, convert_error, ContextError, ErrorKind, ParseError, VerboseError},
     multi::{separated_list0, many0, many1},
     number::complete::double,
@@ -47,12 +47,7 @@ struct LogicalSeqElem {
 #[derive(Debug, PartialEq)]
 struct PipeLine {
     bang: bool,
-    pipesequence: Vec<Command>
-}
-
-#[derive(Debug, PartialEq)]
-enum Command {
-    SimpleCommand(SimpleCommand)
+    pipesequence: Vec<SimpleCommand>
 }
 
 #[derive(Debug, PartialEq)]
@@ -213,10 +208,33 @@ fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
     }))
 }
 
-fn full_command(input: &[u8]) -> IResult<&[u8], Command> {
-    let (input , cmd) = simple_command(input)?;
-    Ok((input, Command::SimpleCommand(cmd)))
+fn tok_tag(tag_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
+    move |input: & [u8]| {
+        let (input, tok) = raw_token(input)?;
+        if tok == tag_name {
+            Ok((input, ()))
+        } else {
+            fail(input)
+        }
+    }
 }
+
+fn pipeline_segment(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
+    let (input, _) = tok_tag(b"|")(input)?;
+    let (input, cmd) = simple_command(input)?;
+    Ok((input, cmd))
+}
+
+fn pipeline_sequence(input: &[u8]) -> IResult<&[u8], PipeLine> {
+    let (input, bang) = opt(tok_tag(b"!"))(input)?;
+    let (input, cmd0) = simple_command(input)?;
+    let (input, mut cmds) = many0(pipeline_segment)(input)?;
+    cmds.insert(0, cmd0);
+    Ok((input, PipeLine {
+        bang: bang.is_some(),
+        pipesequence: cmds
+    }))
+} 
 
 pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
@@ -298,6 +316,23 @@ mod tests {
             args: args
         };
         let (_, actual) = simple_command(input).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    use super::{pipeline_sequence, PipeLine};
+    #[test]
+    fn test_pipeline() {
+        let input = b"! ls | grep stuff | cat";
+        let cmds = vec![
+            simple_command(b"ls").unwrap().1,
+            simple_command(b"grep stuff").unwrap().1,
+            simple_command(b"cat").unwrap().1
+        ];
+        let expected = PipeLine {
+            bang: true,
+            pipesequence: cmds
+        };
+        let (_, actual) = pipeline_sequence(input).unwrap();
         assert_eq!(actual, expected);
     }
 
