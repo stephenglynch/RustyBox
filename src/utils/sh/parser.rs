@@ -15,10 +15,6 @@ use std::error::Error;
 
 type Script = Vec<CompleteCommand>;
 
-#[derive(Debug, PartialEq)]
-struct Word {
-    text: Vec<u8>
-}
 
 #[derive(Debug, PartialEq)]
 struct CompleteCommand {
@@ -59,8 +55,8 @@ struct AssignmentWord {
 #[derive(Debug, PartialEq)]
 struct SimpleCommand {
     assignment_words: Vec<AssignmentWord>,
-    command_name: Option<Word>,
-    args: Vec<Word>
+    command_name: Option<Token>,
+    args: Vec<Token>
 }
 
 fn is_op_initial(c: u8) -> bool {
@@ -93,102 +89,12 @@ fn after_comment(s: &[u8]) -> &[u8] {
     return b"";
 }
 
-fn raw_token(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    // Initialise with maximum size of token
-    let mut is_operator = false;
-    let mut tok_start = 0;
-    let mut tok_len = 0;
-    let mut active_tok = false;
-    for (i, c) in input.into_iter().enumerate() {
-
-        active_tok = tok_len - tok_start != 0;
-
-        // Tokenizer rule 2
-        if is_operator {
-            // Tokenizer rule 3
-            if is_op_character(*c) {
-                tok_len += 1;
-                continue;
-            } else {
-                is_operator = false; // Finished processing operator
-                let tok_end = tok_len - tok_start;
-                return Ok((&input[i..], &input[tok_start..tok_end]));
-            }
-        }
-
-        // TODO: Tokenizer rule 4
-        // TODO: Tokenizer rule 5
-
-        // Tokenizer rule 6
-        if is_op_initial(*c) {
-            is_operator = true;
-            if active_tok {
-                let tok_end = tok_len - tok_start;
-                return Ok((&input[i..], &input[tok_start..tok_end]));
-            } else {
-                tok_len += 1;
-                continue;
-            }
-        }
-
-        // Tokenizer rule 7
-        if is_newline(*c) {
-            tok_len += 1;
-            let tok_end = tok_len - tok_start;
-            return Ok((&input[(i+1)..], &input[tok_start..tok_end]))
-        }
-
-        // Tokenizer rule 8
-        if is_blank(*c) {
-            if tok_len > 0 {
-                let tok_end = tok_len - tok_start;
-                return Ok((&input[(i+1)..], &input[tok_start..tok_end]))
-            } else {
-                continue;
-            }
-        } 
-
-        // Tokenizer rule 9
-        if tok_len > 0 {
-            tok_len += 1;
-            continue;
-        }
-
-        // TODO: Tokenizer rule 10
-        if is_comment(*c) {
-            let rest = after_comment(&input[i..]);
-            return Ok((rest, b"\n"))
-        }
-
-        // Tokenizer rule 11
-        tok_len += 1;
-    }
-
-    // Tokenizer rule 1
-    let tok_end = tok_len - tok_start;
-    if active_tok {
-        Ok((b"", &input[tok_start..tok_end]))
-    } else {
-        Err(nom::Err::Error(
-            nom::error::Error::new(b"", ErrorKind::Fail)
-        ))
-    }
-}
 
 
 fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
     let (input, assignment_words) = many0(assignment_word)(input)?;
     let (input, cmd_name) = opt(raw_token)(input)?;
     let (input, args) = many0(raw_token)(input)?;
-
-    // Convert cmd_name to Option<Word>
-    let cmd_name = match cmd_name {
-        Some(arr) => Some(Word { text: arr.to_vec() }),
-        None => None
-    };
-
-    // Convert args to Vec<Word>
-    let args = args.iter().map(|x| Word { text: x.to_vec() }).collect();
 
     Ok((input, SimpleCommand {
         assignment_words: assignment_words,
