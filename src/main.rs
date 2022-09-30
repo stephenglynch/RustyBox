@@ -6,9 +6,45 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 use pico_args;
 
+mod utils;
 mod io_util;
 
-include!(concat!(env!("OUT_DIR"), "/exec_command.rs"));
+
+#[cfg(feature = "false-util")]
+use utils::_false::false_main;
+#[cfg(feature = "true-util")]
+use utils::_true::true_main;
+#[cfg(feature = "basename-util")]
+use utils::basename::basename_main;
+#[cfg(feature = "cat-util")]
+use utils::cat::cat_main;
+#[cfg(feature = "echo-util")]
+use utils::echo::echo_main;
+#[cfg(feature = "shell-util")]
+use utils::sh::sh_main;
+#[cfg(feature = "yes-util")]
+use utils::yes::yes_main;
+
+
+pub fn exec_command(command_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+    match command_name {
+        #[cfg(feature = "false-util")]
+        "false"     => false_main(args),
+        #[cfg(feature = "true-util")]
+        "true"      => true_main(args),
+        #[cfg(feature = "basename-util")]
+        "basename"  => basename_main(args),
+        #[cfg(feature = "cat-util")]
+        "cat"       => cat_main(args),
+        #[cfg(feature = "echo-util")]
+        "echo"      => echo_main(args),
+        #[cfg(feature = "shell-util")]
+        "sh"        => sh_main(args),
+        #[cfg(feature = "yes-util")]
+        "yes"       => yes_main(args),
+        _ => Ok(ExitCode::from(127)) // Command not found
+    }
+}
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const HELP: &str = "\
