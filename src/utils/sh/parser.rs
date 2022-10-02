@@ -15,6 +15,8 @@ use std::error::Error;
 
 type Script = Vec<CompleteCommand>;
 
+use crate::utils::sh::tokenizer;
+
 
 #[derive(Debug, PartialEq)]
 struct CompleteCommand {
@@ -58,38 +60,6 @@ struct SimpleCommand {
     command_name: Option<Token>,
     args: Vec<Token>
 }
-
-fn is_op_initial(c: u8) -> bool {
-    b"&|;<>".contains(&c)
-}
-
-fn is_op_character(c: u8) -> bool {
-    b"&|;<>-".contains(&c)
-}
-
-fn is_blank(c: u8) -> bool {
-    c == b' ' || c == b'\t'
-}
-
-fn is_newline(c: u8) -> bool {
-    c == b'\n'
-}
-
-fn is_comment(c: u8) -> bool {
-    c == b'#'
-}
-
-fn after_comment(s: &[u8]) -> &[u8] {
-    for (i, c) in s.into_iter().enumerate() {
-        if is_newline(*c) {
-            return &s[(i+1)..];
-        }
-    }
-
-    return b"";
-}
-
-
 
 fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
     let (input, assignment_words) = many0(assignment_word)(input)?;

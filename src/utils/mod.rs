@@ -8,8 +8,8 @@ pub mod basename;
 pub mod cat;
 #[cfg(feature = "echo-util")]
 pub mod echo;
-#[cfg(feature = "shell-util")]
-pub mod shell;
+#[cfg(feature = "sh-util")]
+pub mod sh;
 #[cfg(feature = "yes-util")]
 pub mod yes;
 

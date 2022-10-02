@@ -20,7 +20,7 @@ use utils::basename::basename_main;
 use utils::cat::cat_main;
 #[cfg(feature = "echo-util")]
 use utils::echo::echo_main;
-#[cfg(feature = "shell-util")]
+#[cfg(feature = "sh-util")]
 use utils::sh::sh_main;
 #[cfg(feature = "yes-util")]
 use utils::yes::yes_main;
@@ -38,7 +38,7 @@ pub fn exec_command(command_name: &str, args: Vec<OsString>) -> Result<ExitCode,
         "cat"       => cat_main(args),
         #[cfg(feature = "echo-util")]
         "echo"      => echo_main(args),
-        #[cfg(feature = "shell-util")]
+        #[cfg(feature = "sh-util")]
         "sh"        => sh_main(args),
         #[cfg(feature = "yes-util")]
         "yes"       => yes_main(args),
