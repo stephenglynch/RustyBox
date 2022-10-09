@@ -1,9 +1,40 @@
+use nom::combinator::fail;
 use nom::{error::ErrorKind, IResult};
+use crate::utils::sh::ast_nodes::{Word, LogicalOp, RedirectionOp, IoHereOp, SeperatorOp};
 
 #[derive(Debug, PartialEq)]
-enum TokenType {
-    Word,
-    Op
+enum TokenType<'a> {
+    Word(Word<'a>),
+    Newline,
+    LogicalOp(LogicalOp),
+    RedirectionOp(RedirectionOp),
+    IoHereOp(IoHereOp),
+    SeperatorOp(SeperatorOp),
+    Pipe,
+}
+
+fn new_word(s: &[u8]) -> TokenType {
+    TokenType::Word(
+        Word::new(s)
+    )
+}
+
+fn new_op<'a>(tok: &'a [u8]) -> Option<TokenType<'a>> {
+    match tok {
+        b"&&" => Some(TokenType::LogicalOp(LogicalOp::And)),
+        b"||" => Some(TokenType::LogicalOp(LogicalOp::Or)),
+        b">>" => Some(TokenType::RedirectionOp(RedirectionOp::DGreat)),
+        b"<&" => Some(TokenType::RedirectionOp(RedirectionOp::LessAnd)),
+        b">&" => Some(TokenType::RedirectionOp(RedirectionOp::GreatAnd)),
+        b"<>" => Some(TokenType::RedirectionOp(RedirectionOp::LessGreat)),
+        b">|" => Some(TokenType::RedirectionOp(RedirectionOp::Clobber)),
+        b"<<-" => Some(TokenType::IoHereOp(IoHereOp::DLessDash)),
+        b"<<" => Some(TokenType::IoHereOp(IoHereOp::DLess)),
+        b"|" => Some(TokenType::Pipe),
+        b"&" => Some(TokenType::SeperatorOp(SeperatorOp::Async)),
+        b";" => Some(TokenType::SeperatorOp(SeperatorOp::Seq)),
+        _ => None
+    }
 }
 
 fn is_op_initial(c: u8) -> bool {
@@ -36,7 +67,7 @@ fn after_comment(s: &[u8]) -> &[u8] {
     return b"";
 }
 
-fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
+fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
     // Initialise with maximum size of token
     let mut is_operator = false;
     let mut tok_start = 0;
@@ -55,7 +86,11 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
             } else {
                 is_operator = false; // Finished processing operator
                 let tok_end = tok_len - tok_start;
-                return Ok((&input[i..], (TokenType::Op, &input[tok_start..tok_end])))
+                if let Some(tt) = new_op(input) {
+                    return Ok((&input[i..], new_word(&input[tok_start..tok_end])))
+                } else {
+                    return fail(input)
+                }
             }
         }
 
@@ -67,7 +102,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
             is_operator = true;
             if active_tok {
                 let tok_end = tok_len - tok_start;
-                return Ok((&input[i..], (TokenType::Word, &input[tok_start..tok_end])))
+                return Ok((&input[i..], new_word(&input[tok_start..tok_end])))
             } else {
                 tok_len += 1;
                 continue;
@@ -78,14 +113,14 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
         if is_newline(*c) {
             tok_len += 1;
             let tok_end = tok_len - tok_start;
-            return Ok((&input[(i+1)..], (TokenType::Word, &input[tok_start..tok_end])))
+            return Ok((&input[(i+1)..], new_word(&input[tok_start..tok_end])))
         }
 
         // Tokenizer rule 8
         if is_blank(*c) {
             if tok_len > 0 {
                 let tok_end = tok_len - tok_start;
-                return Ok((&input[(i+1)..], (TokenType::Word, &input[tok_start..tok_end])))
+                return Ok((&input[(i+1)..], new_word(&input[tok_start..tok_end])))
             } else {
                 continue;
             }
@@ -100,7 +135,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
         // TODO: Tokenizer rule 10
         if is_comment(*c) {
             let rest = after_comment(&input[i..]);
-            return Ok((rest, (TokenType::Word, b"\n")))
+            return Ok((rest, new_word(b"\n")))
         }
 
         // Tokenizer rule 11
@@ -110,7 +145,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
     // Tokenizer rule 1
     let tok_end = tok_len - tok_start;
     if active_tok {
-        Ok((b"", (TokenType::Word, &input[tok_start..tok_end])))
+        Ok((b"", new_word(&input[tok_start..tok_end])))
     } else {
         Err(nom::Err::Error(
             nom::error::Error::new(b"", ErrorKind::Fail)
@@ -118,28 +153,63 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], (TokenType, &[u8])> {
     }
 }
 
-pub fn word(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (rest, (token_type, tok)) = raw_token(input)?;
-    if token_type == TokenType::Word {
-        return Ok((rest, tok))
-    } else {
-        Err(nom::Err::Error(
+pub fn word(input: &[u8]) -> IResult<&[u8], Word> {
+    let (rest, tok) = raw_token(input)?;
+    match tok {
+        TokenType::Word(tok) => Ok((rest, tok)),
+        _ => Err(nom::Err::Error(
             nom::error::Error::new(input, ErrorKind::Fail)
         ))
     }
 }
 
-pub fn op(input: &[u8]) -> IResult<&[u8], &[u8]> {
-    let (rest, (token_type, tok)) = raw_token(input)?;
-    if token_type == TokenType::Op {
-        return Ok((rest, tok))
+pub fn logical_op(input: &[u8]) -> IResult<&[u8], LogicalOp> {
+    if let (rest, TokenType::LogicalOp(op)) = raw_token(input)? {
+        Ok((rest, op))
     } else {
-        Err(nom::Err::Error(
-            nom::error::Error::new(input, ErrorKind::Fail)
-        ))
+        fail(input)
     }
 }
 
+pub fn redirection_op(input: &[u8]) -> IResult<&[u8], RedirectionOp> {
+    if let (rest, TokenType::RedirectionOp(op)) = raw_token(input)? {
+        Ok((rest, op))
+    } else {
+        fail(input)
+    }
+}
+
+pub fn io_here_op(input: &[u8]) -> IResult<&[u8], IoHereOp> {
+    if let (rest, TokenType::IoHereOp(op)) = raw_token(input)? {
+        Ok((rest, op))
+    } else {
+        fail(input)
+    }
+}
+
+pub fn pipe_op(input: &[u8]) -> IResult<&[u8], ()> {
+    if let (rest, TokenType::Pipe) = raw_token(input)? {
+        Ok((rest, ()))
+    } else {
+        fail(input)
+    }
+}
+
+pub fn seperator_op(input: &[u8]) -> IResult<&[u8], SeperatorOp> {
+    if let (rest, TokenType::SeperatorOp(op)) = raw_token(input)? {
+        Ok((rest, op))
+    } else {
+        fail(input)
+    }
+}
+
+pub fn newline(input: &[u8]) -> IResult<&[u8], ()> {
+    if let (rest, TokenType::Newline) = raw_token(input)? {
+        Ok((rest, ()))
+    } else {
+        fail(input)
+    }
+}
 
 mod tests {
     use nom::IResult;
@@ -147,74 +217,167 @@ mod tests {
     use std::str;
     use super::*;
 
-    macro_rules! test_token {
-        ( $test_name:ident, $test_string:expr, $expected_op:expr, $expected_tok:expr, $expected_remain:expr ) => {
+    macro_rules! test_word_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
             #[test]
             fn $test_name() {
                 let test_string = $test_string.as_bytes().to_vec();
-                let (remaining, (op, tok)) = raw_token(&test_string).unwrap();
+                let (remaining, tok) = word(&test_string).unwrap();
                 let remaining = str::from_utf8(&remaining).unwrap();
+                let tok = tok.eval();
                 let tok = str::from_utf8(&tok).unwrap();
-                assert_eq!(op, $expected_op);
                 assert_eq!(tok, $expected_tok);
                 assert_eq!(remaining, $expected_remain);
             }
         }
     }
 
-    test_token!(test_end, "foo", TokenType::Word, "foo", "");
-    test_token!(test_space, "foo bar", TokenType::Word, "foo", "bar");
-    test_token!(test_op, "foo|bar", TokenType::Word, "foo", "|bar");
-    test_token!(test_op2, "|bar", TokenType::Op, "|", "bar");
-    test_token!(test_op3, "foo&bar", TokenType::Word, "foo", "&bar");
-    test_token!(test_op4, "&bar", TokenType::Op, "&", "bar");
-    test_token!(test_op5, "foo;bar", TokenType::Word, "foo", ";bar");
-    test_token!(test_op6, ";bar", TokenType::Op, ";", "bar");
-    test_token!(test_op7, "foo&&bar", TokenType::Word, "foo", "&&bar");
-    test_token!(test_op8, "&&bar", TokenType::Op, "&&", "bar");
-    test_token!(test_op9, "foo||bar", TokenType::Word, "foo", "||bar");
-    test_token!(test_op10, "||bar", TokenType::Op, "||", "bar");
-    test_token!(test_op11, "foo || bar", TokenType::Word, "foo", "|| bar");
-    test_token!(test_op12, "|| bar", TokenType::Op, "||", " bar");
-    test_token!(test_newline, "foo\nbar", TokenType::Word, "foo\n", "bar");
-    test_token!(test_newline2, "\n\nfoo", TokenType::Word, "\n", "\nfoo");
-    test_token!(test_comment, "#foo\nbar", TokenType::Word, "\n", "bar");
-    test_token!(test_comment2, "foo#bar\n", TokenType::Word, "foo#bar\n", "");
+    macro_rules! test_log_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = logical_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    macro_rules! test_redir_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = redirection_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    macro_rules! test_iohere_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = io_here_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    macro_rules! test_pipe_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, _) = pipe_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    macro_rules! test_sep_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = seperator_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    macro_rules! test_newline_token {
+        ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, _) = newline(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
+
+    test_word_token!(test_end, "foo", "foo", "");
+    test_word_token!(test_space, "foo bar", "foo", "bar");
+    test_word_token!(test_pipe_op, "foo|bar", "foo", "|bar");
+    test_pipe_op_token!(test_pipe_op2, "|bar", "bar");
+    test_word_token!(test_op3, "foo&bar", "foo", "&bar");
+    test_sep_op_token!(test_async_sep_op, "&bar", SeperatorOp::Async, "bar");
+    test_sep_op_token!(test_seq_sep_op, ";bar", SeperatorOp::Seq, "bar");
+    test_word_token!(test_op5, "foo;bar", "foo", ";bar");
+    test_word_token!(test_op7, "foo&&bar", "foo", "&&bar");
+    test_log_op_token!(test_log_and_op, "&&bar", LogicalOp::And, "bar");
+    test_word_token!(test_op9, "foo||bar", "foo", "||bar");
+    test_log_op_token!(test_log_or_op, "||bar", LogicalOp::Or, "bar");
+    test_word_token!(test_op11, "foo || bar", "foo", "|| bar");
+    test_log_op_token!(test_log_or_op2, "|| bar", LogicalOp::Or, " bar");
+    test_word_token!(test_newline, "foo\nbar", "foo\n", "bar");
+    test_newline_token!(test_newline2, "\n\nfoo", "\nfoo");
+    test_newline_token!(test_comment, "#foo\nbar", "bar");
+    test_word_token!(test_comment2, "foo#bar\n", "foo#bar\n", "");
+    test_iohere_op_token!(test_io_here1, "<<eof", IoHereOp::DLess, "eof");
+    test_iohere_op_token!(test_io_here2, "<<-eof", IoHereOp::DLessDash, "eof");
+    test_redir_op_token!(test_redir_op1, ">>afile", RedirectionOp::DGreat, "eof");
+    test_redir_op_token!(test_redir_op2, ">afile", RedirectionOp::Great, "eof");
+    test_redir_op_token!(test_redir_op3, ">|afile", RedirectionOp::Clobber, "eof");
+    test_redir_op_token!(test_redir_op4, "<afile", RedirectionOp::Less, "eof");
 
     #[test]
-    fn test_empty() {
+    fn test_empty_word() {
         let test_string = b"";
         let blah = b"".as_ref();
-        let expected: IResult<&[u8], (TokenType, &[u8]), error::Error<&[u8]>> = Err(
+        let expected: IResult<&[u8], Word, error::Error<&[u8]>> = Err(
             nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
         );
-        let actual_result = raw_token(test_string);
+        let actual_result = word(test_string);
         assert_eq!(actual_result, expected);
     }
 
     #[test]
-    fn test_word_tok() {
-        let test_string = "foo&&bar";
-        let expected_tok = "foo";
-        let expected_remain = "&&bar";
-        let test_string = test_string.as_bytes().to_vec();
-        let (remaining, tok) = word(&test_string).unwrap();
-        let remaining = str::from_utf8(&remaining).unwrap();
-        let tok = str::from_utf8(&tok).unwrap();
-        assert_eq!(tok, expected_tok);
-        assert_eq!(remaining, expected_remain);
+    fn test_empty_op() {
+        let test_string = b"";
+        let blah = b"".as_ref();
+        let expected = Err(
+            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
+        );
+        let actual_result = pipe_op(test_string);
+        assert_eq!(actual_result, expected);
     }
 
-    #[test]
-    fn test_op_tok() {
-        let test_string = "&&bar";
-        let expected_tok = "&&";
-        let expected_remain = "bar";
-        let test_string = test_string.as_bytes().to_vec();
-        let (remaining, tok) = op(&test_string).unwrap();
-        let remaining = str::from_utf8(&remaining).unwrap();
-        let tok = str::from_utf8(&tok).unwrap();
-        assert_eq!(tok, expected_tok);
-        assert_eq!(remaining, expected_remain);
-    }
+    // #[test]
+    // fn test_word_tok() {
+    //     let test_string = "foo&&bar";
+    //     let expected_tok = "foo";
+    //     let expected_remain = "&&bar";
+    //     let test_string = test_string.as_bytes().to_vec();
+    //     let (remaining, tok) = word(&test_string).unwrap();
+    //     let remaining = str::from_utf8(&remaining).unwrap();
+    //     let tok = str::from_utf8(&tok).unwrap();
+    //     assert_eq!(tok, expected_tok);
+    //     assert_eq!(remaining, expected_remain);
+    // }
+
+    // #[test]
+    // fn test_op_tok() {
+    //     let test_string = "&&bar";
+    //     let expected_tok = "&&";
+    //     let expected_remain = "bar";
+    //     let test_string = test_string.as_bytes().to_vec();
+    //     let (remaining, tok) = op(&test_string).unwrap();
+    //     let remaining = str::from_utf8(&remaining).unwrap();
+    //     let tok = str::from_utf8(&tok).unwrap();
+    //     assert_eq!(tok, expected_tok);
+    //     assert_eq!(remaining, expected_remain);
+    // }
 }

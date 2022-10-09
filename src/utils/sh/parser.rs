@@ -13,58 +13,13 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 use std::error::Error;
 
-type Script = Vec<CompleteCommand>;
+use crate::utils::sh::tokenizer::{word, op, Word};
 
-use crate::utils::sh::tokenizer;
-
-
-#[derive(Debug, PartialEq)]
-struct CompleteCommand {
-    expression: Expression,
-    subshell: bool
-}
-
-#[derive(Debug, PartialEq)]
-enum LogicalOp {
-    Or,
-    And
-}
-
-#[derive(Debug, PartialEq)]
-struct Expression {
-    seq: Vec<LogicalSeqElem>,
-    term: PipeLine
-}
-
-#[derive(Debug, PartialEq)]
-struct LogicalSeqElem {
-    op: LogicalOp,
-    pipeline: PipeLine
-}
-
-#[derive(Debug, PartialEq)]
-struct PipeLine {
-    bang: bool,
-    pipesequence: Vec<SimpleCommand>
-}
-
-#[derive(Debug, PartialEq)]
-struct AssignmentWord {
-    name: Vec<u8>,
-    value: Vec<u8>
-}
-
-#[derive(Debug, PartialEq)]
-struct SimpleCommand {
-    assignment_words: Vec<AssignmentWord>,
-    command_name: Option<Token>,
-    args: Vec<Token>
-}
 
 fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
     let (input, assignment_words) = many0(assignment_word)(input)?;
-    let (input, cmd_name) = opt(raw_token)(input)?;
-    let (input, args) = many0(raw_token)(input)?;
+    let (input, cmd_name) = opt(word)(input)?;
+    let (input, args) = many0(word)(input)?;
 
     Ok((input, SimpleCommand {
         assignment_words: assignment_words,
@@ -75,8 +30,8 @@ fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
 
 //pub fn assignment_word<'a, E: ParseError<&'a [u8]>>(input: &'a [u8]) -> IResult<&'a [u8], AssignmentWord, E> {
 fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
-    let (input, tok) = raw_token(input)?;
-    let (remaining, name) = take_until1(b"=".as_ref())(tok.as_ref())?;
+    let (input, tok) = word(input)?;
+    let (remaining, name) = take_until1(b"=".as_ref())(tok.text)?;
     let value = &remaining[1..];
     Ok((input, AssignmentWord {
         name: name.to_vec(),
@@ -84,10 +39,21 @@ fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
     }))
 }
 
-fn tok_tag(tag_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
+fn word_with_name(word_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
     move |input: & [u8]| {
-        let (input, tok) = raw_token(input)?;
-        if tok == tag_name {
+        let (input, tok) = op(input)?;
+        if tok == word_name {
+            Ok((input, ()))
+        } else {
+            fail(input)
+        }
+    }
+}
+
+fn op_with_name(op_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
+    move |input: & [u8]| {
+        let (input, tok) = op(input)?;
+        if tok == op_name {
             Ok((input, ()))
         } else {
             fail(input)
@@ -96,13 +62,13 @@ fn tok_tag(tag_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
 }
 
 fn pipeline_segment(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
-    let (input, _) = tok_tag(b"|")(input)?;
+    let (input, _) = op_with_name(b"|")(input)?;
     let (input, cmd) = simple_command(input)?;
     Ok((input, cmd))
 }
 
 fn pipeline_sequence(input: &[u8]) -> IResult<&[u8], PipeLine> {
-    let (input, bang) = opt(tok_tag(b"!"))(input)?;
+    let (input, bang) = opt(word_with_name(b"!"))(input)?;
     let (input, cmd0) = simple_command(input)?;
     let (input, mut cmds) = many0(pipeline_segment)(input)?;
     cmds.insert(0, cmd0);
@@ -119,54 +85,10 @@ pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
 mod tests {
     use nom::IResult;
     use nom::error;
-    use super::raw_token;
     use std::str;
 
-    macro_rules! test_token {
-        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-            #[test]
-            fn $test_name() {
-                let test_string = $test_string.as_bytes().to_vec();
-                let (remaining, tok) = raw_token(&test_string).unwrap();
-                let remaining = str::from_utf8(&remaining).unwrap();
-                let tok = str::from_utf8(&tok).unwrap();
-                assert_eq!(tok, $expected_tok);
-                assert_eq!(remaining, $expected_remain);
-            }
-        }
-    }
-
-    test_token!(test_end, "foo", "foo", "");
-    test_token!(test_space, "foo bar", "foo", "bar");
-    test_token!(test_op, "foo|bar", "foo", "|bar");
-    test_token!(test_op2, "|bar", "|", "bar");
-    test_token!(test_op3, "foo&bar", "foo", "&bar");
-    test_token!(test_op4, "&bar", "&", "bar");
-    test_token!(test_op5, "foo;bar", "foo", ";bar");
-    test_token!(test_op6, ";bar", ";", "bar");
-    test_token!(test_op7, "foo&&bar", "foo", "&&bar");
-    test_token!(test_op8, "&&bar", "&&", "bar");
-    test_token!(test_op9, "foo||bar", "foo", "||bar");
-    test_token!(test_op10, "||bar", "||", "bar");
-    test_token!(test_op11, "foo || bar", "foo", "|| bar");
-    test_token!(test_op12, "|| bar", "||", " bar");
-    test_token!(test_newline, "foo\nbar", "foo\n", "bar");
-    test_token!(test_newline2, "\n\nfoo", "\n", "\nfoo");
-    test_token!(test_comment, "#foo\nbar", "\n", "bar");
-    test_token!(test_comment2, "foo#bar\n", "foo#bar\n", "");
-
-    #[test]
-    fn test_empty() {
-        let test_string = b"";
-        let blah = b"".as_ref();
-        let expected: IResult<&[u8], &[u8], error::Error<&[u8]>> = Err(
-            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
-        );
-        let actual_result = raw_token(test_string);
-        assert_eq!(actual_result, expected);
-    }
-
     use super::{assignment_word, AssignmentWord};
+
     #[test]
     fn test_assignment_word() {
         let input = b"foo=bar";
@@ -178,17 +100,17 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    use super::{simple_command, SimpleCommand, Word};
+    use super::{simple_command, SimpleCommand};
     #[test]
     fn test_simple_cmd() {
         let input = b"echo hello world";
         let args = vec![
-            Word {text: b"hello".to_vec()},
-            Word {text: b"world".to_vec()},
+            b"hello".to_vec(),
+            b"world".to_vec(),
         ];
         let expected = SimpleCommand {
             assignment_words: vec![],
-            command_name: Some(Word {text: b"echo".to_vec()}),
+            command_name: Some(b"echo".to_vec()),
             args: args
         };
         let (_, actual) = simple_command(input).unwrap();
