@@ -19,6 +19,8 @@
                     "kind": "bin"
                 }
             },
+            // I wish this behaved the way I wanted it to, it reminds me of the command at least
+            "postRunCommands": ["type format add -f char u8"],
             "args": [],
             "cwd": "${workspaceFolder}"
         },
@@ -38,6 +40,7 @@
                     "kind": "bin"
                 }
             },
+            "initCommands": ["type format add -f char u8"],
             "args": [],
             "cwd": "${workspaceFolder}"
         }
