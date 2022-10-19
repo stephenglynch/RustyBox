@@ -13,18 +13,41 @@ use std::ffi::OsString;
 use std::process::ExitCode;
 use std::error::Error;
 
-use crate::utils::sh::tokenizer::{word, op, Word};
+use super::ast_nodes::*;
+use super::tokenizer::{word, pipe_op, newline};
 
+
+pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
+    many0(complete_command)(input)
+}
+
+fn complete_command(input: &[u8]) -> IResult<&[u8], CompleteCommand> {
+    let (input, simple_cmd) = simple_command(input)?;
+    let (input, _) = newline(input)?;
+
+    let pipeline = PipeLine {
+        bang: false,
+        pipesequence: vec![simple_cmd]
+    };
+
+    let expr = Expression {
+        seq: vec![],
+        term: pipeline
+    };
+
+    Ok((input, CompleteCommand {
+        expression: expr,
+        subshell: false
+    }))
+}
 
 fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
     let (input, assignment_words) = many0(assignment_word)(input)?;
-    let (input, cmd_name) = opt(word)(input)?;
-    let (input, args) = many0(word)(input)?;
+    let (input, words) = many0(word)(input)?;
 
     Ok((input, SimpleCommand {
         assignment_words: assignment_words,
-        command_name: cmd_name,
-        args: args
+        words: words
     }))
 }
 
@@ -39,9 +62,10 @@ fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
     }))
 }
 
-fn word_with_name(word_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
+fn reserved_name(word_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
     move |input: & [u8]| {
-        let (input, tok) = op(input)?;
+        let (input, tok) = word(input)?;
+        let tok = tok.eval();
         if tok == word_name {
             Ok((input, ()))
         } else {
@@ -50,25 +74,14 @@ fn word_with_name(word_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_
     }
 }
 
-fn op_with_name(op_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
-    move |input: & [u8]| {
-        let (input, tok) = op(input)?;
-        if tok == op_name {
-            Ok((input, ()))
-        } else {
-            fail(input)
-        }
-    }
-}
-
 fn pipeline_segment(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
-    let (input, _) = op_with_name(b"|")(input)?;
+    let (input, _) = pipe_op(input)?;
     let (input, cmd) = simple_command(input)?;
     Ok((input, cmd))
 }
 
 fn pipeline_sequence(input: &[u8]) -> IResult<&[u8], PipeLine> {
-    let (input, bang) = opt(word_with_name(b"!"))(input)?;
+    let (input, bang) = opt(reserved_name(b"!"))(input)?;
     let (input, cmd0) = simple_command(input)?;
     let (input, mut cmds) = many0(pipeline_segment)(input)?;
     cmds.insert(0, cmd0);
@@ -87,7 +100,7 @@ mod tests {
     use nom::error;
     use std::str;
 
-    use super::{assignment_word, AssignmentWord};
+    use super::{assignment_word, AssignmentWord, Word};
 
     #[test]
     fn test_assignment_word() {
@@ -104,20 +117,20 @@ mod tests {
     #[test]
     fn test_simple_cmd() {
         let input = b"echo hello world";
-        let args = vec![
-            b"hello".to_vec(),
-            b"world".to_vec(),
+        let words = vec![
+            Word::new(b"echo"),
+            Word::new(b"hello"),
+            Word::new(b"world"),
         ];
         let expected = SimpleCommand {
             assignment_words: vec![],
-            command_name: Some(b"echo".to_vec()),
-            args: args
+            words: words
         };
         let (_, actual) = simple_command(input).unwrap();
         assert_eq!(actual, expected);
     }
 
-    use super::{pipeline_sequence, PipeLine};
+    use super::{pipeline_sequence, pipeline_segment, reserved_name, PipeLine};
     #[test]
     fn test_pipeline() {
         let input = b"! ls | grep stuff | cat";
