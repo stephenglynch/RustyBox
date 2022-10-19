@@ -14,9 +14,13 @@ enum TokenType<'a> {
 }
 
 fn new_word(s: &[u8]) -> TokenType {
-    TokenType::Word(
-        Word::new(s)
-    )
+    if s == b"\n" {
+        new_newline()
+    } else {
+        TokenType::Word(
+            Word::new(s)
+        )
+    }
 }
 
 fn new_op<'a>(tok: &'a [u8]) -> Option<TokenType<'a>> {
@@ -30,11 +34,17 @@ fn new_op<'a>(tok: &'a [u8]) -> Option<TokenType<'a>> {
         b">|" => Some(TokenType::RedirectionOp(RedirectionOp::Clobber)),
         b"<<-" => Some(TokenType::IoHereOp(IoHereOp::DLessDash)),
         b"<<" => Some(TokenType::IoHereOp(IoHereOp::DLess)),
+        b">" => Some(TokenType::RedirectionOp(RedirectionOp::Great)),
+        b"<" => Some(TokenType::RedirectionOp(RedirectionOp::Less)),
         b"|" => Some(TokenType::Pipe),
         b"&" => Some(TokenType::SeperatorOp(SeperatorOp::Async)),
         b";" => Some(TokenType::SeperatorOp(SeperatorOp::Seq)),
         _ => None
     }
+}
+
+fn new_newline<'a>() -> TokenType<'a> {
+    TokenType::Newline
 }
 
 fn is_op_initial(c: u8) -> bool {
@@ -58,9 +68,15 @@ fn is_comment(c: u8) -> bool {
 }
 
 fn after_comment(s: &[u8]) -> &[u8] {
+
+    // Nothing after comment
+    if s == b"#" {
+        return b"";
+    }
+
     for (i, c) in s.into_iter().enumerate() {
         if is_newline(*c) {
-            return &s[(i+1)..];
+            return &s[i..];
         }
     }
 
@@ -73,9 +89,10 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
     let mut tok_start = 0;
     let mut tok_len = 0;
     let mut active_tok = false;
+    let mut active_comment = false;
     for (i, c) in input.into_iter().enumerate() {
 
-        active_tok = tok_len - tok_start != 0;
+        active_tok = tok_len > 0;
 
         // Tokenizer rule 2
         if is_operator {
@@ -85,9 +102,10 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
                 continue;
             } else {
                 is_operator = false; // Finished processing operator
-                let tok_end = tok_len - tok_start;
-                if let Some(tt) = new_op(input) {
-                    return Ok((&input[i..], new_word(&input[tok_start..tok_end])))
+                let tok_end = tok_len + tok_start;
+                let tok = &input[tok_start..tok_end];
+                if let Some(tt) = new_op(tok) {
+                    return Ok((&input[i..], tt))
                 } else {
                     return fail(input)
                 }
@@ -101,7 +119,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
         if is_op_initial(*c) {
             is_operator = true;
             if active_tok {
-                let tok_end = tok_len - tok_start;
+                let tok_end = tok_len + tok_start;
                 return Ok((&input[i..], new_word(&input[tok_start..tok_end])))
             } else {
                 tok_len += 1;
@@ -112,19 +130,31 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
         // Tokenizer rule 7
         if is_newline(*c) {
             tok_len += 1;
-            let tok_end = tok_len - tok_start;
+            let tok_end = tok_len + tok_start;
             return Ok((&input[(i+1)..], new_word(&input[tok_start..tok_end])))
         }
 
         // Tokenizer rule 8
         if is_blank(*c) {
             if tok_len > 0 {
-                let tok_end = tok_len - tok_start;
+                let tok_end = tok_len + tok_start;
                 return Ok((&input[(i+1)..], new_word(&input[tok_start..tok_end])))
             } else {
+                tok_start += 1;
                 continue;
             }
         } 
+
+        // TODO: Tokenizer rule 10
+        if is_comment(*c) {
+            let rest = after_comment(&input[i..]);
+            if active_tok {
+                let tok_end = tok_len + tok_start;
+                return Ok((rest, new_word(&input[tok_start..tok_end])))
+            } else {
+                return Ok((&rest[1..], new_newline()))
+            }
+        }
 
         // Tokenizer rule 9
         if tok_len > 0 {
@@ -132,18 +162,12 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             continue;
         }
 
-        // TODO: Tokenizer rule 10
-        if is_comment(*c) {
-            let rest = after_comment(&input[i..]);
-            return Ok((rest, new_word(b"\n")))
-        }
-
         // Tokenizer rule 11
         tok_len += 1;
     }
 
     // Tokenizer rule 1
-    let tok_end = tok_len - tok_start;
+    let tok_end = tok_len + tok_start;
     if active_tok {
         Ok((b"", new_word(&input[tok_start..tok_end])))
     } else {
@@ -325,13 +349,13 @@ mod tests {
     test_word_token!(test_newline, "foo\nbar", "foo\n", "bar");
     test_newline_token!(test_newline2, "\n\nfoo", "\nfoo");
     test_newline_token!(test_comment, "#foo\nbar", "bar");
-    test_word_token!(test_comment2, "foo#bar\n", "foo#bar\n", "");
+    test_word_token!(test_comment2, "foo#bar\n", "foo", "\n");
     test_iohere_op_token!(test_io_here1, "<<eof", IoHereOp::DLess, "eof");
     test_iohere_op_token!(test_io_here2, "<<-eof", IoHereOp::DLessDash, "eof");
-    test_redir_op_token!(test_redir_op1, ">>afile", RedirectionOp::DGreat, "eof");
-    test_redir_op_token!(test_redir_op2, ">afile", RedirectionOp::Great, "eof");
-    test_redir_op_token!(test_redir_op3, ">|afile", RedirectionOp::Clobber, "eof");
-    test_redir_op_token!(test_redir_op4, "<afile", RedirectionOp::Less, "eof");
+    test_redir_op_token!(test_redir_op1, ">>afile", RedirectionOp::DGreat, "afile");
+    test_redir_op_token!(test_redir_op2, ">afile", RedirectionOp::Great, "afile");
+    test_redir_op_token!(test_redir_op3, ">|afile", RedirectionOp::Clobber, "afile");
+    test_redir_op_token!(test_redir_op4, "<afile", RedirectionOp::Less, "afile");
 
     #[test]
     fn test_empty_word() {
