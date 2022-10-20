@@ -129,9 +129,12 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
 
         // Tokenizer rule 7
         if is_newline(*c) {
-            tok_len += 1;
-            let tok_end = tok_len + tok_start;
-            return Ok((&input[(i+1)..], new_word(&input[tok_start..tok_end])))
+            if active_tok {
+                let tok_end = tok_len + tok_start;
+                return Ok((&input[i..], new_word(&input[tok_start..tok_end])))
+            } else {
+                return Ok((&input[1..], new_newline()))
+            }
         }
 
         // Tokenizer rule 8
@@ -346,8 +349,10 @@ mod tests {
     test_log_op_token!(test_log_or_op, "||bar", LogicalOp::Or, "bar");
     test_word_token!(test_op11, "foo || bar", "foo", "|| bar");
     test_log_op_token!(test_log_or_op2, "|| bar", LogicalOp::Or, " bar");
-    test_word_token!(test_newline, "foo\nbar", "foo\n", "bar");
-    test_newline_token!(test_newline2, "\n\nfoo", "\nfoo");
+    test_word_token!(test_newline, "foo\nbar", "foo", "\nbar");
+    test_newline_token!(test_newline2, "\nfoo", "foo");
+    test_newline_token!(test_newline3, "\n\nfoo", "\nfoo");
+    test_word_token!(test_newline4, "foo\n", "foo", "\n");
     test_newline_token!(test_comment, "#foo\nbar", "bar");
     test_word_token!(test_comment2, "foo#bar\n", "foo", "\n");
     test_iohere_op_token!(test_io_here1, "<<eof", IoHereOp::DLess, "eof");
