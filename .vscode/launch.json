@@ -21,7 +21,7 @@
             },
             // I wish this behaved the way I wanted it to, it reminds me of the command at least
             "postRunCommands": ["type format add -f char u8"],
-            "args": [],
+            "args": ["sh", "${workspaceFolder}/test_script.sh"],
             "cwd": "${workspaceFolder}"
         },
         {

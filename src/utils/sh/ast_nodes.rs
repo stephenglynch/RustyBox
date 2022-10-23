@@ -21,7 +21,7 @@ pub struct CompleteCommand<'a> {
 }
 
 impl<'a> CompleteCommand<'a> {
-    fn execute(&self, ev: &ExecEnv) -> i32 {
+    pub fn execute(&self, ev: &ExecEnv) -> i32 {
         self.expression.execute(&ev)
     }   
 }

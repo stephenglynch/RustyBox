@@ -50,15 +50,15 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const HELP: &str = "\
 RustyBox 
 
-usage: toybox [--help | [COMMAND] [ARGUMENTS...]]
+usage: rustybox [--help | [COMMAND] [ARGUMENTS...]]
 
 With no arguments, \"rustybox\" shows available COMMAND names. 
 
 First argument is name of a COMMAND to run, followed by any ARGUMENTS
-to that command. Most toybox commands also understand:
+to that command. Most rustybox commands also understand:
 
 --help          Show command help (only)
---version       Show toybox version (only)
+--version       Show rustybox version (only)
 
 The filename \"-\" means stdin/stdout, and \"--\" stops argument parsing.
 ";
