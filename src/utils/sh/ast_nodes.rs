@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::os::unix::prelude::OsStrExt;
 use std::os::unix::prelude::OsStringExt;
+use std::error::Error;
 use std::process::Command;
 use std::collections::HashMap;
 use core::slice::Iter;
@@ -21,7 +22,7 @@ pub struct CompleteCommand<'a> {
 }
 
 impl<'a> CompleteCommand<'a> {
-    pub fn execute(&self, ev: &ExecEnv) -> i32 {
+    pub fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
         self.expression.execute(&ev)
     }   
 }
@@ -33,7 +34,7 @@ pub struct Expression<'a> {
 }
 
 impl<'a> Expression<'a> {
-    fn execute(&self, ev: &ExecEnv) -> i32 {
+    fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
         self.term.execute(&ev)
     }
 }
@@ -51,16 +52,16 @@ pub struct PipeLine<'a> {
 }
 
 impl<'a> PipeLine<'a> {
-    fn execute(&self, ev: &ExecEnv) -> i32 {
+    fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
         let mut exit_val = 0;
         for cmd in self.pipesequence.iter() {
-            exit_val = cmd.execute(&ev);
+            exit_val = cmd.execute(&ev)?;
         }
 
         if self.bang {
-            !exit_val
+            Ok(!exit_val)
         } else {
-            exit_val
+            Ok(exit_val)
         }
     }
 }
@@ -90,11 +91,11 @@ impl<'a> SimpleCommand<'a> {
         return self.words[1..].iter()
     }
  
-    fn execute(&self, _ev: &ExecEnv) -> i32 {
+    fn execute(&self, _ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
 
         let command_name = match self.command_name() {
             Some(command_name) => OsString::from_vec(command_name.eval()),
-            None => return 0
+            None => return Ok(0)
         };
 
         // Convert Vec<u8> into Iter of OsStr
@@ -106,10 +107,10 @@ impl<'a> SimpleCommand<'a> {
         });
 
         // Convert env to 
-        Command::new(&command_name)
+        Ok(Command::new(&command_name)
             .args(osargs)
-            .status().unwrap()
-            .code().unwrap()
+            .status()?
+            .code().unwrap())
     }
 }
 

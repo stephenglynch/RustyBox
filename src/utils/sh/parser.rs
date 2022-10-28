@@ -21,7 +21,7 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
     many0(complete_command)(input)
 }
 
-fn complete_command(input: &[u8]) -> IResult<&[u8], CompleteCommand> {
+pub fn complete_command(input: &[u8]) -> IResult<&[u8], CompleteCommand> {
     let (input, simple_cmd) = simple_command(input)?;
     let (input, _) = newline(input)?;
 
