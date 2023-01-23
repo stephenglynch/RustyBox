@@ -16,7 +16,7 @@ mod ast_nodes;
 
 pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     if args.len() == 0 {
-        repl();
+        repl()?;
         return Ok(ExitCode::FAILURE);
     }
 
@@ -59,7 +59,7 @@ pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     };
 
     for cmd in cmds {
-        cmd.execute(&env);
+        cmd.execute(&env)?;
     }
 
     Ok(ExitCode::SUCCESS)
@@ -71,12 +71,17 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
         // TODO: Need to get this from PS1
         // TODO: Needs to use &[u8]
         print!("$ ");
-        stdout().flush();
+        stdout().flush()?;
 
         // Read input
         // TODO: Needs to use &[u8] probably?
         let mut cmd_str = String::new();
-        stdin().read_line(&mut cmd_str);
+        let num_bytes = stdin().read_line(&mut cmd_str)?;
+
+        // EOF detected return
+        if num_bytes == 0 {
+            return Ok(ExitCode::SUCCESS)
+        }
 
         // Parse command
         let r = complete_command(&cmd_str.as_bytes());
