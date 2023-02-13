@@ -1,5 +1,5 @@
 use std::ffi::OsString; 
-use std::io::{Read, stdout, stdin, Write};
+use std::io::{Read, Write, stdin, stderr};
 use std::process::ExitCode;
 use std::error::Error;
 use std::fs::File;
@@ -8,7 +8,6 @@ use std::collections::HashMap;
 
 use self::ast_nodes::ExecEnv;
 use self::parser::{script, complete_command};
-use crate::io_util::write_line;
 
 mod parser;
 mod tokenizer;
@@ -65,13 +64,18 @@ pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
 }
 
+fn print_ps1() -> Result<(), Box<dyn Error>> {
+    eprint!("$ ");
+    stderr().flush()?;
+    Ok(())
+}
+
 fn repl() -> Result<ExitCode, Box<dyn Error>> {
     loop {
         // Print cursor
-        // TODO: Need to get this from PS1
+        // TODO: Need to get this from $PS1
         // TODO: Needs to use &[u8]
-        print!("$ ");
-        stdout().flush()?;
+        print_ps1()?;
 
         // Read input
         // TODO: Needs to use &[u8] probably?
