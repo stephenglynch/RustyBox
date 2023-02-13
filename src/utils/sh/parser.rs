@@ -22,13 +22,8 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
 }
 
 pub fn complete_command(input: &[u8]) -> IResult<&[u8], CompleteCommand> {
-    let (input, simple_cmd) = simple_command(input)?;
+    let (input, pipeline) = pipeline_sequence(input)?;
     let (input, _) = newline(input)?;
-
-    let pipeline = PipeLine {
-        bang: false,
-        pipesequence: vec![simple_cmd]
-    };
 
     let expr = Expression {
         seq: vec![],
