@@ -1,13 +1,8 @@
 use nom::{
-    branch::alt,
-    bytes::complete::{escaped, tag, take_while, take_until1},
-    character::complete::{alphanumeric1 as alphanumeric, char, one_of},
-    combinator::{cut, map, opt, value, fail},
-    error::{context, convert_error, ContextError, ErrorKind, ParseError, VerboseError},
-    multi::{separated_list0, many0, many1},
-    number::complete::double,
-    sequence::{delimited, preceded, separated_pair, terminated},
-    Err, IResult, FindToken, FindSubstring, Offset
+    bytes::complete::take_until1,
+    combinator::{opt, fail},
+    multi::many0,
+    IResult
 };
 use std::ffi::OsString; 
 use std::process::ExitCode;
