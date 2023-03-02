@@ -4,6 +4,7 @@ use std::os::unix::prelude::OsStrExt;
 use std::os::unix::prelude::OsStringExt;
 use std::error::Error;
 use std::process::Command;
+use std::process::Stdio;
 use std::collections::HashMap;
 use core::slice::Iter;
 
@@ -35,7 +36,7 @@ pub struct Expression<'a> {
 
 impl<'a> Expression<'a> {
     fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
-        self.term.execute(&ev)
+        self.term.execute_pipeline(&ev)
     }
 }
 
@@ -52,19 +53,54 @@ pub struct PipeLine<'a> {
 }
 
 impl<'a> PipeLine<'a> {
-    fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
-        let mut exit_val = 0;
-        for cmd in self.pipesequence.iter() {
-            exit_val = cmd.execute(&ev)?;
+    fn execute_pipeline(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
+        let mut children = vec![];
+        let mut commands: Vec<_> = self.pipesequence
+            .iter()
+            .map(|cmd| cmd.setup_command(&ev))
+            .collect();
+
+        commands.reverse();
+
+        let mut cmd_left = commands.pop().expect("Failed to pop command");
+        for mut cmd_right in commands {            
+            match (&mut cmd_left, &mut cmd_right) {
+                (Some(lcmd), Some(rcmd)) => {
+                    lcmd.stdout(Stdio::piped());
+                    let mut child = lcmd.spawn()?;
+                    rcmd.stdin(child.stdout.take().expect("Failed to create pipe"));
+                    children.push(Some(child));
+                },
+                (Some(lcmd), None) => {
+                    lcmd.stdout(Stdio::null());
+                    let child = lcmd.spawn()?;
+                    children.push(Some(child));
+                },
+                (None, Some(_)) => (),
+                (None, None) => ()
+            };
+
+            cmd_left = cmd_right;
         }
 
-        if self.bang {
-            Ok(!exit_val)
-        } else {
-            Ok(exit_val)
+        if let Some(mut final_command) = cmd_left {
+            let child = final_command.spawn()?;
+            children.push(Some(child));
         }
+        
+
+        let mut final_exit_val = 0;
+        for child_opt in children {
+            final_exit_val = match child_opt {
+                Some(mut child) => child.wait()?.code().unwrap(),
+                None => 0
+            };
+        }   
+
+        Ok(final_exit_val)
     }
 }
+
 
 #[derive(Debug, PartialEq)]
 pub struct AssignmentWord {
@@ -91,11 +127,11 @@ impl<'a> SimpleCommand<'a> {
         return self.words[1..].iter()
     }
  
-    fn execute(&self, _ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
+    fn setup_command(&self, _ev: &ExecEnv) -> Option<Command> {
 
         let command_name = match self.command_name() {
             Some(command_name) => OsString::from_vec(command_name.eval()),
-            None => return Ok(0)
+            None => return None
         };
 
         // Convert Vec<u8> into Iter of OsStr
@@ -106,11 +142,9 @@ impl<'a> SimpleCommand<'a> {
             OsStr::from_bytes(&arg)
         });
 
-        // Convert env to 
-        Ok(Command::new(&command_name)
-            .args(osargs)
-            .status()?
-            .code().unwrap())
+        let mut cmd = Command::new(&command_name);
+        cmd.args(osargs);
+        Some(cmd)
     }
 }
 
