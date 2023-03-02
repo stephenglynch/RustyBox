@@ -83,6 +83,16 @@ fn after_comment(s: &[u8]) -> &[u8] {
     return b"";
 }
 
+fn count_until_quote(s: &[u8]) -> Option<usize> {
+    for i in 0..s.len() {
+        match s[i] {
+            b'\'' => return Some(i),
+            _ => () 
+        }
+    }
+    None
+}
+
 fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
     // Initialise with maximum size of token
     let mut is_operator = false;
@@ -94,9 +104,9 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
 
         active_tok = tok_len > 0;
 
-        // Tokenizer rule 2
+        // Tokenizer rule 2 - operators
         if is_operator {
-            // Tokenizer rule 3
+            // Tokenizer rule 3 - delimit operator if next character is not part of op
             if is_op_character(*c) {
                 tok_len += 1;
                 continue;
@@ -112,10 +122,19 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             }
         }
 
-        // TODO: Tokenizer rule 4
-        // TODO: Tokenizer rule 5
+        // TODO: Tokenizer rule 4 - quoting
+        // if *c == b'\'' {
+        //     if let Some(count) = count_until_quote(&input[i..]) {
+        //         tok_len += count + 1;
+        //         continue;
+        //     } else {
+        //         return fail(input);
+        //     }
+        // }
 
-        // Tokenizer rule 6
+        // TODO: Tokenizer rule 5 - expansions
+
+        // Tokenizer rule 6 - start of operator
         if is_op_initial(*c) {
             is_operator = true;
             if active_tok {
@@ -127,7 +146,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             }
         }
 
-        // Tokenizer rule 7
+        // Tokenizer rule 7 - spaces
         if is_newline(*c) {
             if active_tok {
                 let tok_end = tok_len + tok_start;
@@ -137,7 +156,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             }
         }
 
-        // Tokenizer rule 8
+        // Tokenizer rule 8 - words
         if is_blank(*c) {
             if tok_len > 0 {
                 let tok_end = tok_len + tok_start;
@@ -148,7 +167,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             }
         } 
 
-        // TODO: Tokenizer rule 10
+        // Tokenizer rule 9 - comments
         if is_comment(*c) {
             let rest = after_comment(&input[i..]);
             if active_tok {
@@ -159,13 +178,13 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
             }
         }
 
-        // Tokenizer rule 9
+        // Tokenizer rule 10 - start of word (I think)
         if tok_len > 0 {
             tok_len += 1;
             continue;
         }
 
-        // Tokenizer rule 11
+        // Tokenizer rule 11 - rule 11??
         tok_len += 1;
     }
 
