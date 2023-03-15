@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::process::ExitCode;
-use std::ffi::{OsString, OsStr};
+use std::ffi::OsString;
 use std::os::unix::prelude::OsStrExt;
 use std::env::current_dir;
 
