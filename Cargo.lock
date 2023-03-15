@@ -205,6 +205,7 @@ name = "rustybox"
 version = "0.0.1"
 dependencies = [
  "assert_cmd",
+ "lazy_static",
  "libc",
  "nix",
  "nom",

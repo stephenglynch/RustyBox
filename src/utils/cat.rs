@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::process::ExitCode;
 use std::ffi::{OsString, OsStr};
-use std::io::{stdout, Write, self};
 use std::os::unix::prelude::OsStrExt;
 use crate::io_util::write_line;
 

@@ -10,8 +10,6 @@ mod utils;
 mod io_util;
 
 
-#[cfg(feature = "true-util")]
-use utils::_true::true_main;
 #[cfg(feature = "basename-util")]
 use utils::basename::basename_main;
 #[cfg(feature = "cat-util")]
@@ -24,14 +22,16 @@ use utils::_false::false_main;
 use utils::pwd::pwd_main;
 #[cfg(feature = "sh-util")]
 use utils::sh::sh_main;
+#[cfg(feature = "touch-util")]
+use utils::touch::touch_main;
+#[cfg(feature = "true-util")]
+use utils::_true::true_main;
 #[cfg(feature = "yes-util")]
 use utils::yes::yes_main;
 
 static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::error::Error + 'static)>>)] = &[
         #[cfg(feature = "false-util")]
         ("false", false_main),
-        #[cfg(feature = "true-util")]
-        ("true", true_main),
         #[cfg(feature = "basename-util")]
         ("basename", basename_main),
         #[cfg(feature = "cat-util")]
@@ -42,6 +42,10 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("pwd", pwd_main),
         #[cfg(feature = "sh-util")]
         ("sh", sh_main),
+        #[cfg(feature = "touch-util")]
+        ("touch", touch_main),
+        #[cfg(feature = "true-util")]
+        ("true", true_main),
         #[cfg(feature = "yes-util")]
         ("yes", yes_main),
 ];

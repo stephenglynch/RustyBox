@@ -10,6 +10,8 @@ pub mod _false;
 pub mod pwd;
 #[cfg(feature = "sh-util")]
 pub mod sh;
+#[cfg(feature = "touch-util")]
+pub mod touch;
 #[cfg(feature = "true-util")]
 pub mod _true;
 #[cfg(feature = "yes-util")]

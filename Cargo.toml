@@ -8,13 +8,14 @@ readme = "README.md"
 repository = "https://github.com/stephenglynch/RustyBox"
 
 [features]
-default = ["basename-util", "cat-util", "echo-util", "false-util", "pwd-util", "sh-util", "true-util", "yes-util"]
+default = ["basename-util", "cat-util", "echo-util", "false-util", "pwd-util", "sh-util", "touch-util", "true-util", "yes-util"]
 basename-util = []
 cat-util = []
 echo-util = []
 false-util = []
 pwd-util = []
 sh-util = []
+touch-util = []
 true-util = []
 yes-util = []
 
@@ -23,6 +24,7 @@ pico-args = "0.5.0"
 nom = "7.1.1"
 libc = "0.2"
 nix = "0.26.2"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.4"
