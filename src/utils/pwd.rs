@@ -6,7 +6,8 @@ use std::env::current_dir;
 
 use crate::io_util::write_line;
 
-// TODO: Missing functionality for argumenets -L and -P
+// TODO: Does not handle -L
+// TODO: Does not handle -P
 
 pub fn pwd_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     write_line(current_dir().expect("Fatal: could not current directory").as_os_str().as_bytes())?;
