@@ -25,25 +25,37 @@ use utils::sh::sh_main;
 #[cfg(feature = "yes-util")]
 use utils::yes::yes_main;
 
+static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::error::Error + 'static)>>)] = &[
+        #[cfg(feature = "false-util")]
+        ("false", false_main),
+        #[cfg(feature = "true-util")]
+        ("true", true_main),
+        #[cfg(feature = "basename-util")]
+        ("basename", basename_main),
+        #[cfg(feature = "cat-util")]
+        ("cat", cat_main),
+        #[cfg(feature = "echo-util")]
+        ("echo", echo_main),
+        #[cfg(feature = "sh-util")]
+        ("sh", sh_main),
+        #[cfg(feature = "yes-util")]
+        ("yes", yes_main),
+];
+
+pub fn list_commands() {
+    for (cmd, _) in commands {
+        print!("{} ", cmd);
+    }
+    print!("\n");
+}
 
 pub fn exec_command(command_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
-    match command_name {
-        #[cfg(feature = "false-util")]
-        "false"     => false_main(args),
-        #[cfg(feature = "true-util")]
-        "true"      => true_main(args),
-        #[cfg(feature = "basename-util")]
-        "basename"  => basename_main(args),
-        #[cfg(feature = "cat-util")]
-        "cat"       => cat_main(args),
-        #[cfg(feature = "echo-util")]
-        "echo"      => echo_main(args),
-        #[cfg(feature = "sh-util")]
-        "sh"        => sh_main(args),
-        #[cfg(feature = "yes-util")]
-        "yes"       => yes_main(args),
-        _ => Ok(ExitCode::from(127)) // Command not found
+    for (cmd, cmdf) in commands {
+        if *cmd == command_name {
+            return cmdf(args)
+        }
     }
+    Ok(ExitCode::from(127))
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -76,7 +88,7 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
         args.remove(0);
 
         if args.len() == 0 {
-            print!("TODO: Print list of commands");
+            list_commands();
             process::exit(0);
         }
 
