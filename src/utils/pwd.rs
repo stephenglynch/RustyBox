@@ -1,0 +1,14 @@
+use std::error::Error;
+use std::process::ExitCode;
+use std::ffi::{OsString, OsStr};
+use std::os::unix::prelude::OsStrExt;
+use std::env::current_dir;
+
+use crate::io_util::write_line;
+
+// TODO: Missing functionality for argumenets -L and -P
+
+pub fn pwd_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+    write_line(current_dir().expect("Fatal: could not current directory").as_os_str().as_bytes())?;
+    Ok(ExitCode::SUCCESS)
+}

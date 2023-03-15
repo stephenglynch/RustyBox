@@ -10,8 +10,6 @@ mod utils;
 mod io_util;
 
 
-#[cfg(feature = "false-util")]
-use utils::_false::false_main;
 #[cfg(feature = "true-util")]
 use utils::_true::true_main;
 #[cfg(feature = "basename-util")]
@@ -20,6 +18,10 @@ use utils::basename::basename_main;
 use utils::cat::cat_main;
 #[cfg(feature = "echo-util")]
 use utils::echo::echo_main;
+#[cfg(feature = "false-util")]
+use utils::_false::false_main;
+#[cfg(feature = "pwd-util")]
+use utils::pwd::pwd_main;
 #[cfg(feature = "sh-util")]
 use utils::sh::sh_main;
 #[cfg(feature = "yes-util")]
@@ -36,6 +38,8 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("cat", cat_main),
         #[cfg(feature = "echo-util")]
         ("echo", echo_main),
+        #[cfg(feature = "pwd-util")]
+        ("pwd", pwd_main),
         #[cfg(feature = "sh-util")]
         ("sh", sh_main),
         #[cfg(feature = "yes-util")]
