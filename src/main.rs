@@ -18,6 +18,8 @@ use utils::cat::cat_main;
 use utils::echo::echo_main;
 #[cfg(feature = "false-util")]
 use utils::_false::false_main;
+#[cfg(feature = "mkdir-util")]
+use utils::mkdir::mkdir_main;
 #[cfg(feature = "pwd-util")]
 use utils::pwd::pwd_main;
 #[cfg(feature = "sh-util")]
@@ -38,6 +40,8 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("cat", cat_main),
         #[cfg(feature = "echo-util")]
         ("echo", echo_main),
+        #[cfg(feature = "mkdir-util")]
+        ("mkdir", mkdir_main),
         #[cfg(feature = "pwd-util")]
         ("pwd", pwd_main),
         #[cfg(feature = "sh-util")]

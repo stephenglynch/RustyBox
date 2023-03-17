@@ -6,6 +6,8 @@ pub mod cat;
 pub mod echo;
 #[cfg(feature = "false-util")]
 pub mod _false;
+#[cfg(feature= "mkdir-util")]
+pub mod mkdir;
 #[cfg(feature= "pwd-util")]
 pub mod pwd;
 #[cfg(feature = "sh-util")]
