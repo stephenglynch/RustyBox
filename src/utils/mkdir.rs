@@ -12,5 +12,18 @@ pub fn mkdir_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     pargs.free_from_os_str(|dirname| {
         fs::create_dir(dirname)
     })?;
+
+    // Handle more than one directory
+    loop {
+        let success = pargs.opt_free_from_os_str(|dirname| {
+            fs::create_dir(dirname)
+        });
+
+        match success {
+            Ok(None) => break,
+            _ => ()
+        };
+    }
+
     Ok(ExitCode::SUCCESS)
 }
