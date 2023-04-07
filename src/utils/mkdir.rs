@@ -1,6 +1,5 @@
 use std::ffi::{OsString, OsStr}; 
 use std::fs;
-use std::io;
 use std::process::ExitCode;
 use std::error::Error;
 use pico_args;
