@@ -8,6 +8,7 @@ rb_loc=${rootfs}/usr/bin/rustybox
 
 # Build rootfs directory structure
 mkdir -p ${rootfs}/usr/bin
+mkdir -p ${rootfs}/bin
 
 # Create symlinks in rootfs
 cp target/release/rustybox ${rb_loc}
@@ -15,6 +16,7 @@ utilities=$(./${rootfs}/usr/bin/rustybox)
 for util in ${utilities}
 do
     ln -sf rustybox ${rootfs}/usr/bin/${util}
+    ln -sf ../usr/bin/rustybox ${rootfs}/bin/${util}
 done
 
 # ln -s usr/bin ${rootfs}/bin
