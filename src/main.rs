@@ -95,32 +95,37 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
 
     let mut args: Vec<OsString> = args_os().collect();
 
-    // Check if program name contains "rustybox"
-    let program_name = &args[0];
-    let base = Path::new(program_name).file_name().unwrap();
-    if base.to_str().unwrap() == "rustybox"
-    {
-        // Remove "rustybox" from argv
-        args.remove(0);
-
-        if args.len() == 0 {
+    let first = args[0].clone();
+    let program_name = Path::new(&first).file_name().unwrap();
+    let command_name;
+    
+    if program_name.to_str().unwrap() == "rustybox" {
+        // Check if program name just contains "rustybox"
+        if args.len() == 1 {
             list_commands();
             process::exit(0);
         }
 
-        let mut pargs = pico_args::Arguments::from_vec(args.clone());
-        if pargs.contains("--help") {
-            print!("{}", HELP);
-            process::exit(0);
-        }
+        // Remove "rustybox" from argv
+        args.remove(0);
+        command_name = args[0].clone();
 
-        if pargs.contains("--version") {
-            print!("rustybox {}", VERSION);
-            process::exit(0);
-        }
+    } else {
+        command_name = Path::new(&first).file_name().unwrap().to_owned();
+    }
+
+    let mut pargs = pico_args::Arguments::from_vec(args.clone());
+    if pargs.contains("--help") {
+        print!("{}", HELP);
+        process::exit(0);
+    }
+
+    if pargs.contains("--version") {
+        println!("rustybox {}", VERSION);
+        process::exit(0);
     }
 
     // If we get to here we have a command
-    let command_name = args.remove(0).into_string().unwrap();
-    exec_command(&command_name, args)
+    args.remove(0);
+    exec_command(command_name.to_str().unwrap(), args)   
 }
