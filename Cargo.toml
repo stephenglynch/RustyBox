@@ -8,7 +8,8 @@ readme = "README.md"
 repository = "https://github.com/stephenglynch/RustyBox"
 
 [features]
-default = ["basename-util", "cat-util", "echo-util", "false-util", "mkdir-util", "pwd-util", "rmdir-util", "sh-util", "touch-util", "true-util", "yes-util"]
+default = ["all"]
+all = ["basename-util", "cat-util", "echo-util", "false-util", "mkdir-util", "pwd-util", "rmdir-util", "sh-util", "touch-util", "true-util", "yes-util"]
 basename-util = []
 cat-util = []
 echo-util = []

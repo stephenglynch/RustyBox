@@ -1,0 +1,49 @@
+mainmenu "RustyBox configuration"
+
+menu "Utils"
+
+config UTIL_BASENAME
+	bool "basename util"
+	default y
+
+config UTIL_CAT
+	bool "cat util"
+	default y
+
+config UTIL_ECHO
+	bool "echo util"
+	default y
+
+config UTIL_FALSE
+	bool "false util"
+	default y
+
+config UTIL_MKDIR
+	bool "mkdir util"
+	default y
+
+config UTIL_PWD
+	bool "pwd util"
+	default y
+
+config UTIL_RMDIR
+	bool "rmdir util"
+	default y
+
+config UTIL_SH
+	bool "sh util"
+	default y
+
+config UTIL_TOUCH
+	bool "touch util"
+	default y
+
+config UTIL_TRUE
+	bool "true util"
+	default y
+
+config UTIL_YES
+	bool "yes util"
+	default y
+
+endmenu
