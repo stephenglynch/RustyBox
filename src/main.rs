@@ -5,9 +5,11 @@ use std::process;
 use std::ffi::OsString;
 use std::process::ExitCode;
 use pico_args;
+use log::*;
 
 mod utils;
 mod io_util;
+mod error;
 
 
 #[cfg(feature = "basename-util")]
@@ -97,6 +99,13 @@ The filename \"-\" means stdin/stdout, and \"--\" stops argument parsing.
 
 fn main() -> Result<ExitCode, Box<dyn Error>> {
 
+    // Setup logging
+    stderrlog::new()
+        .module(module_path!())
+        .verbosity(log::Level::Debug)
+        .init()
+        .unwrap();
+
     let mut args: Vec<OsString> = args_os().collect();
 
     let first = args[0].clone();
@@ -131,5 +140,11 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
 
     // If we get to here we have a command
     args.remove(0);
-    exec_command(command_name.to_str().unwrap(), args)   
+    let res = exec_command(command_name.to_str().unwrap(), args);
+    match res {
+        Ok(code) => Ok(code),
+        Err(err) => {
+            error!("{}", err); 
+            Ok(ExitCode::SUCCESS)}
+    }
 }

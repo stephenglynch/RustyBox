@@ -1,29 +1,31 @@
-use std::ffi::{OsString, OsStr}; 
+use std::ffi::OsString; 
 use std::fs;
 use std::process::ExitCode;
 use std::error::Error;
 use std::path::Path;
 use pico_args::{self, Arguments};
-use crate::io_util::write_line_err;
 use log::*;
 
-// TODO: Does not handle -f
 // TODO: Does not handle -i
-// TODO: Does not handle -R
-// TODO: Does not handle -r
 
-
-fn rm_node(path: &Path, recurse: bool, force: bool) -> Result<(), Box<dyn Error>> {
-    if recurse {
-        for entry in fs::read_dir(path)? {
-            let entry = entry?;
-            let ftype = entry.file_type()?;
-            if ftype.is_dir() {
-                
-            }
-        }
+fn rm_node(path: &Path, recurse: bool, force: bool) -> u8 {
+    // Handle -f flag
+    if !path.exists() && force {
+        return 0;
     }
-    Ok(())
+
+    let res = if path.is_dir() && recurse {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path) // Equivalent to unlink
+    };
+
+    if let Err(e) = res {
+        error!("{}", e);
+        return 1;
+    }
+
+    return 0;
 }
 
 fn files_from_pargs(pargs: &mut Arguments) -> Vec<OsString> {
@@ -45,28 +47,21 @@ fn files_from_pargs(pargs: &mut Arguments) -> Vec<OsString> {
 
 pub fn rm_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut pargs = pico_args::Arguments::from_vec(args);
-
-    stderrlog::new().module(module_path!()).init().unwrap();
-
+    let recurse = pargs.contains("-r") || pargs.contains("-R");
+    let force = pargs.contains("-f");
     let files = files_from_pargs(&mut pargs);
+    let mut exit_code = 0;
+
     if files.len() == 0 {
         error!("missing operand");
+        return Ok(ExitCode::FAILURE)
     }
     else {
-
+        for f in files {
+            let path = Path::new(&f);
+            exit_code |= rm_node(path, recurse, force);
+        }
     }
 
-    // Handle more than one directory
-    loop {
-        let success = pargs.opt_free_from_os_str(|file_path| {
-            fs::remove_dir(file_path)
-        });
-
-        match success {
-            Ok(None) => break,
-            _ => ()
-        };
-    }
-
-    Ok(ExitCode::SUCCESS)
+    Ok(ExitCode::from(exit_code))
 }
