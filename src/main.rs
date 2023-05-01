@@ -9,7 +9,6 @@ use log::*;
 
 mod utils;
 mod io_util;
-mod error;
 
 
 #[cfg(feature = "basename-util")]
