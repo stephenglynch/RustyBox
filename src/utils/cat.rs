@@ -4,6 +4,8 @@ use std::ffi::{OsString, OsStr};
 use std::os::unix::prelude::OsStrExt;
 use crate::io_util::write_line;
 
+// Cat implements yes, need to update
+
 pub fn cat_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut yes_val = OsString::from("y");
     if args.len() > 0 {
