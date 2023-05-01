@@ -26,6 +26,10 @@ config UTIL_PWD
 	bool "pwd util"
 	default y
 
+config UTIL_RM
+	bool "rm util"
+	default y
+
 config UTIL_RMDIR
 	bool "rmdir util"
 	default y
