@@ -10,6 +10,8 @@ pub mod _false;
 pub mod mkdir;
 #[cfg(feature= "pwd-util")]
 pub mod pwd;
+#[cfg(feature= "rm-util")]
+pub mod rm;
 #[cfg(feature= "rmdir-util")]
 pub mod rmdir;
 #[cfg(feature = "sh-util")]

@@ -22,6 +22,8 @@ use utils::_false::false_main;
 use utils::mkdir::mkdir_main;
 #[cfg(feature = "pwd-util")]
 use utils::pwd::pwd_main;
+#[cfg(feature= "rm-util")]
+use utils::rm::rm_main;
 #[cfg(feature= "rmdir-util")]
 use utils::rmdir::rmdir_main;
 #[cfg(feature = "sh-util")]
@@ -46,6 +48,8 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("mkdir", mkdir_main),
         #[cfg(feature = "pwd-util")]
         ("pwd", pwd_main),
+        #[cfg(feature= "rm-util")]
+        ("rm", rm_main),
         #[cfg(feature= "rmdir-util")]
         ("rmdir", rmdir_main),
         #[cfg(feature = "sh-util")]
