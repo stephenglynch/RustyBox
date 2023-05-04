@@ -10,6 +10,7 @@ use pico_args;
 // TODO: Does not handle -r
 // TODO: Does not handle -t
 // TODO: Does not handle -d
+// TODO: Does not handle multiple files
 
 
 pub fn touch_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
