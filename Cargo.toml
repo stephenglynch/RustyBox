@@ -19,6 +19,7 @@ all = [
     "rm-util",
     "rmdir-util",
     "sh-util",
+    "test-util",
     "touch-util",
     "true-util",
     "yes-util",
@@ -32,6 +33,7 @@ pwd-util = []
 rm-util = []
 rmdir-util = []
 sh-util = []
+test-util = []
 touch-util = []
 true-util = []
 yes-util = []

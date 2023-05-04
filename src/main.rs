@@ -29,6 +29,8 @@ use utils::rm::rm_main;
 use utils::rmdir::rmdir_main;
 #[cfg(feature = "sh-util")]
 use utils::sh::sh_main;
+#[cfg(feature = "test-util")]
+use utils::test::test_main;
 #[cfg(feature = "touch-util")]
 use utils::touch::touch_main;
 #[cfg(feature = "true-util")]
@@ -55,6 +57,8 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("rmdir", rmdir_main),
         #[cfg(feature = "sh-util")]
         ("sh", sh_main),
+        #[cfg(feature = "test-util")]
+        ("test", test_main),
         #[cfg(feature = "touch-util")]
         ("touch", touch_main),
         #[cfg(feature = "true-util")]

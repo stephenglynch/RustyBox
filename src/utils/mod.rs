@@ -16,6 +16,8 @@ pub mod rm;
 pub mod rmdir;
 #[cfg(feature = "sh-util")]
 pub mod sh;
+#[cfg(feature = "test-util")]
+pub mod test;
 #[cfg(feature = "touch-util")]
 pub mod touch;
 #[cfg(feature = "true-util")]

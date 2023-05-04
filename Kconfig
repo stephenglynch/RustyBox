@@ -38,6 +38,10 @@ config UTIL_SH
 	bool "sh util"
 	default y
 
+config UTIL_TEST
+	bool "test util"
+	default y
+
 config UTIL_TOUCH
 	bool "touch util"
 	default y
