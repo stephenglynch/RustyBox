@@ -37,8 +37,7 @@ fn files_from_pargs(pargs: &mut Arguments) -> Vec<OsString> {
 
         match success {
             None => break,
-            Some(fl) => files.push(fl),
-            _ => ()
+            Some(fl) => files.push(fl)
         };
     }
 
