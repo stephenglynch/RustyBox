@@ -12,6 +12,8 @@ use log::*;
 use crate::safe_libc;
 use libc;
 
+// TODO: Handle "[" form of test
+
 enum FileTest {
     BlockDev,     /* -b */
     CharDev,      /* -c */
@@ -127,7 +129,24 @@ fn test_path(test_type: FileTest, path: &Path) -> io::Result<bool> {
     Ok(ret)
 }
 
-fn test_expr2(arg1: &[u8], arg2: &[u8]) -> Result<bool, Box<dyn Error>> {
+fn test_tty(arg: &[u8]) -> bool {
+    let arg_s = match str::from_utf8(arg) {
+        Ok(s) => s,
+        _ => return false
+    };
+
+    let fd = match i32::from_str_radix(arg_s, 10) {
+        Ok(n) => n,
+        _ => return false
+    };
+
+    match safe_libc::isatty(fd) {
+        Ok(v) => v,
+        _ => false
+    }
+}
+
+fn test_expr2(arg1: &[u8], arg2: &[u8]) -> io::Result<bool> {
     let path = Path::new(OsStr::from_bytes(arg2));
     let ret = match arg1 {
         b"!" => !test_expr1(arg2),
@@ -144,7 +163,7 @@ fn test_expr2(arg1: &[u8], arg2: &[u8]) -> Result<bool, Box<dyn Error>> {
         b"-r" => test_path(FileTest::Readable, path)?,
         b"-S" => test_path(FileTest::Socket, path)?,
         b"-s" => test_path(FileTest::GtZero, path)?,
-        b"-t" => safe_libc::isatty(i32::from_str_radix(str::from_utf8(arg2)?, 10)?)?,
+        b"-t" => test_tty(arg2),
         b"-u" => test_path(FileTest::UidSet, path)?,
         b"-w" => test_path(FileTest::Writable, path)?,
         b"-x" => test_path(FileTest::Executable, path)?,
