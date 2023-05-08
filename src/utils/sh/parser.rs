@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use std::error::Error;
 
 use super::ast_nodes::*;
-use super::tokenizer::{word, pipe_op, newline};
+use super::tokenizer::{word, pipe_op, newline, logical_op};
 
 
 pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
@@ -17,17 +17,36 @@ pub fn script(input: &[u8]) -> IResult<&[u8], Script> {
 }
 
 pub fn complete_command(input: &[u8]) -> IResult<&[u8], CompleteCommand> {
-    let (input, pipeline) = pipeline_sequence(input)?;
+    let (input, expr) = expression(input)?;
     let (input, _) = newline(input)?;
-
-    let expr = Expression {
-        seq: vec![],
-        term: pipeline
-    };
 
     Ok((input, CompleteCommand {
         expression: expr,
         subshell: false
+    }))
+}
+
+pub fn expression(input: &[u8]) -> IResult<&[u8], Expression> {
+    let (input, pipeline) = pipeline_sequence(input)?;
+    let (input, logical_seq_list) = logical_sequence(input)?;
+
+    Ok((input, Expression {
+        seq: logical_seq_list,
+        term: pipeline
+    }))
+}
+
+pub fn logical_sequence(input: &[u8]) -> IResult<&[u8], Vec<LogicalSeqElem>> {
+    many0(logical_segment)(input)
+}
+
+pub fn logical_segment(input: &[u8]) -> IResult<&[u8], LogicalSeqElem> {
+    let (input, op) = logical_op(input)?;
+    let (input, pipeline) = pipeline_sequence(input)?;
+
+    Ok((input, LogicalSeqElem {
+        op: op,
+        pipeline: pipeline
     }))
 }
 

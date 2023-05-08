@@ -36,7 +36,21 @@ pub struct Expression<'a> {
 
 impl<'a> Expression<'a> {
     fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
-        self.term.execute_pipeline(&ev)
+        let mut ret = self.term.execute_pipeline(&ev)?;
+        for l in self.seq.iter() {
+            let op_res = match l.op {
+                LogicalOp::And => ret == 0,
+                LogicalOp::Or => ret != 0
+            };
+            
+            if op_res {
+                ret = l.pipeline.execute_pipeline(&ev)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(ret)
     }
 }
 
