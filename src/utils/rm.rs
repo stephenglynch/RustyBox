@@ -45,7 +45,7 @@ fn files_from_pargs(pargs: &mut Arguments) -> Vec<OsString> {
     files
 }
 
-pub fn rm_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn rm_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut pargs = pico_args::Arguments::from_vec(args);
     let recurse = pargs.contains("-r") || pargs.contains("-R");
     let force = pargs.contains("-f");

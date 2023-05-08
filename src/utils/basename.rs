@@ -39,7 +39,7 @@ fn get_basename<'a>(path_str: &'a OsStr, suffix: &OsStr) -> &'a OsStr {
     strip_suffix(file_name, suffix)
 }
 
-pub fn basename_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn basename_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     if args.len() == 0 {
         println!("basename: missing operand");
         return Ok(ExitCode::FAILURE);

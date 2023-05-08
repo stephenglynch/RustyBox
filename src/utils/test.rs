@@ -177,7 +177,21 @@ fn test_expr2(arg1: &[u8], arg2: &[u8]) -> io::Result<bool> {
     Ok(ret)
 }
 
-pub fn test_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn test_main(cmd_name: &str, mut args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+
+    // Check end bracket
+    if cmd_name == "[" {
+        if args.len() > 0 {
+            let final_arg = args.pop().unwrap();
+            if final_arg.to_str().unwrap() != "]" {
+                error!("Missing \"]\"");
+                return Ok(ExitCode::FAILURE)
+            }
+        } else {
+            error!("Missing \"]\"");
+            return Ok(ExitCode::FAILURE)
+        }
+    }
 
     let ret = if args.len() == 0 {
         false

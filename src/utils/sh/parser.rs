@@ -81,7 +81,7 @@ fn pipeline_sequence(input: &[u8]) -> IResult<&[u8], PipeLine> {
     }))
 } 
 
-pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
 }
 

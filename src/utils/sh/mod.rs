@@ -13,7 +13,7 @@ mod parser;
 mod tokenizer;
 mod ast_nodes;
 
-pub fn sh_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     if args.len() == 0 {
         repl()?;
         return Ok(ExitCode::FAILURE);

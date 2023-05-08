@@ -38,7 +38,7 @@ use utils::_true::true_main;
 #[cfg(feature = "yes-util")]
 use utils::yes::yes_main;
 
-static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::error::Error + 'static)>>)] = &[
+static COMMANDS: &[(&str, fn(&str, Vec<OsString>) -> Result<ExitCode, Box<(dyn std::error::Error + 'static)>>)] = &[
         #[cfg(feature = "false-util")]
         ("false", false_main),
         #[cfg(feature = "basename-util")]
@@ -59,6 +59,8 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
         ("sh", sh_main),
         #[cfg(feature = "test-util")]
         ("test", test_main),
+        #[cfg(feature = "test-util")]
+        ("[", test_main),
         #[cfg(feature = "touch-util")]
         ("touch", touch_main),
         #[cfg(feature = "true-util")]
@@ -68,16 +70,16 @@ static commands: &[(&str, fn(Vec<OsString>) -> Result<ExitCode, Box<(dyn std::er
 ];
 
 pub fn list_commands() {
-    for (cmd, _) in commands {
+    for (cmd, _) in COMMANDS {
         print!("{} ", cmd);
     }
     print!("\n");
 }
 
 pub fn exec_command(command_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
-    for (cmd, cmdf) in commands {
+    for (cmd, cmdf) in COMMANDS {
         if *cmd == command_name {
-            return cmdf(args)
+            return cmdf(*cmd, args)
         }
     }
     Ok(ExitCode::from(127))

@@ -6,7 +6,7 @@ use std::os::unix::prelude::OsStrExt;
 use crate::io_util::write_line;
 
 
-pub fn yes_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn yes_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut yes_val = OsString::from("y");
     if args.len() > 0 {
         let sep = OsStr::new(" ");

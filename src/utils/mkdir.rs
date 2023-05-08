@@ -11,7 +11,7 @@ pub fn get_os_string(dir_name: &OsStr) -> Result<OsString, u8> {
     Ok(OsString::from(dir_name))
 }
 
-pub fn mkdir_main(args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+pub fn mkdir_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     let mut pargs = pico_args::Arguments::from_vec(args);
     let mut dir_names = vec![];
 
