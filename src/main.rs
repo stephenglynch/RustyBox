@@ -9,7 +9,7 @@ use log::*;
 
 mod utils;
 mod io_util;
-
+mod safe_libc;
 
 #[cfg(feature = "basename-util")]
 use utils::basename::basename_main;
