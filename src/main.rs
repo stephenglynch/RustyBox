@@ -148,6 +148,6 @@ fn main() -> Result<ExitCode, Box<dyn Error>> {
         Ok(code) => Ok(code),
         Err(err) => {
             error!("{}", err); 
-            Ok(ExitCode::SUCCESS)}
+            Ok(ExitCode::FAILURE)}
     }
 }
