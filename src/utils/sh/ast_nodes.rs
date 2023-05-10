@@ -200,6 +200,7 @@ pub enum IoHereOp {
     DLessDash
 }
 
+#[allow(dead_code)]
 pub type IoNumber = u32;
 
 #[derive(Debug, PartialEq)]

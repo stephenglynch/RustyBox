@@ -100,10 +100,12 @@ fn pipeline_sequence(input: &[u8]) -> IResult<&[u8], PipeLine> {
     }))
 } 
 
-pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
+#[allow(dead_code)]
+pub fn sh_main(_cmd_name: &str, _args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     Ok(ExitCode::SUCCESS)
 }
 
+#[cfg(test)]
 mod tests {
     use nom::IResult;
     use nom::error;

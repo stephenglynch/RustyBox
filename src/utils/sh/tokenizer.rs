@@ -83,6 +83,7 @@ fn after_comment(s: &[u8]) -> &[u8] {
     return b"";
 }
 
+#[allow(dead_code)]
 fn count_until_quote(s: &[u8]) -> Option<usize> {
     for i in 0..s.len() {
         match s[i] {
@@ -99,7 +100,7 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
     let mut tok_start = 0;
     let mut tok_len = 0;
     let mut active_tok = false;
-    let mut active_comment = false;
+    //let mut active_comment = false;
     for (i, c) in input.into_iter().enumerate() {
 
         active_tok = tok_len > 0;
@@ -111,7 +112,6 @@ fn raw_token(input: &[u8]) -> IResult<&[u8], TokenType> {
                 tok_len += 1;
                 continue;
             } else {
-                is_operator = false; // Finished processing operator
                 let tok_end = tok_len + tok_start;
                 let tok = &input[tok_start..tok_end];
                 if let Some(tt) = new_op(tok) {
@@ -217,6 +217,7 @@ pub fn logical_op(input: &[u8]) -> IResult<&[u8], LogicalOp> {
     }
 }
 
+#[allow(dead_code)]
 pub fn redirection_op(input: &[u8]) -> IResult<&[u8], RedirectionOp> {
     if let (rest, TokenType::RedirectionOp(op)) = raw_token(input)? {
         Ok((rest, op))
@@ -225,6 +226,7 @@ pub fn redirection_op(input: &[u8]) -> IResult<&[u8], RedirectionOp> {
     }
 }
 
+#[allow(dead_code)]
 pub fn io_here_op(input: &[u8]) -> IResult<&[u8], IoHereOp> {
     if let (rest, TokenType::IoHereOp(op)) = raw_token(input)? {
         Ok((rest, op))
@@ -241,6 +243,7 @@ pub fn pipe_op(input: &[u8]) -> IResult<&[u8], ()> {
     }
 }
 
+#[allow(dead_code)]
 pub fn seperator_op(input: &[u8]) -> IResult<&[u8], SeperatorOp> {
     if let (rest, TokenType::SeperatorOp(op)) = raw_token(input)? {
         Ok((rest, op))
@@ -257,6 +260,7 @@ pub fn newline(input: &[u8]) -> IResult<&[u8], ()> {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use nom::IResult;
     use nom::error;
