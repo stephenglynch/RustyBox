@@ -10,8 +10,8 @@ use core::slice::Iter;
 
 #[derive(Debug, PartialEq)]
 pub struct ExecEnv {
-    pub argv: Vec<u8>,
-    pub env: HashMap<u8, u8>
+    pub argv: OsString,
+    pub env: HashMap<OsString, OsString>
 }
 
 pub type Script<'a> = Vec<CompleteCommand<'a>>;
@@ -118,8 +118,8 @@ impl<'a> PipeLine<'a> {
 
 #[derive(Debug, PartialEq)]
 pub struct AssignmentWord {
-    pub name: Vec<u8>,
-    pub value: Vec<u8>
+    pub name: OsString,
+    pub value: OsString
 }
 
 #[derive(Debug, PartialEq)]
@@ -141,7 +141,7 @@ impl<'a> SimpleCommand<'a> {
         return self.words[1..].iter()
     }
  
-    fn setup_command(&self, _ev: &ExecEnv) -> Option<Command> {
+    fn setup_command(&self, ev: &ExecEnv) -> Option<Command> {
 
         let command_name = match self.command_name() {
             Some(command_name) => OsString::from_vec(command_name.eval()),
@@ -156,8 +156,14 @@ impl<'a> SimpleCommand<'a> {
             OsStr::from_bytes(&arg)
         });
 
-        let mut cmd = Command::new(&command_name);
+        let mut cmd: Command = Command::new(&command_name);
         cmd.args(osargs);
+
+        // Pass assignment words
+        //println!("assignment words: {:?}", ev.env);
+        cmd.envs(&ev.env);
+        //cmd.envs(&self.assignment_words);
+
         Some(cmd)
     }
 }

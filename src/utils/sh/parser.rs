@@ -4,7 +4,7 @@ use nom::{
     multi::many0,
     IResult
 };
-use std::ffi::OsString; 
+use std::{ffi::OsString, os::unix::prelude::OsStringExt}; 
 use std::process::ExitCode;
 use std::error::Error;
 
@@ -66,8 +66,8 @@ fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
     let (remaining, name) = take_until1(b"=".as_ref())(tok.text)?;
     let value = &remaining[1..];
     Ok((input, AssignmentWord {
-        name: name.to_vec(),
-        value: value.to_vec()
+        name: OsString::from_vec(name.to_vec()),
+        value: OsString::from_vec(value.to_vec())
     }))
 }
 

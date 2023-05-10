@@ -53,7 +53,7 @@ pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn
     };
 
     let env = ExecEnv {
-        argv: vec![],
+        argv: OsString::new(),
         env: HashMap::new()
     };
 
@@ -100,7 +100,7 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
 
         // Execute command
         let env = ExecEnv {
-            argv: vec![],
+            argv: OsString::new(),
             env: HashMap::new()
         };
 
