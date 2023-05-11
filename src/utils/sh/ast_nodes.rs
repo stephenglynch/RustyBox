@@ -8,9 +8,16 @@ use std::process::Stdio;
 use std::collections::HashMap;
 use core::slice::Iter;
 
+
+#[derive(Debug, PartialEq)]
+pub struct VarValue {
+    pub value: OsString,
+    pub export: bool
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ExecEnv {
-    pub env: HashMap<OsString, OsString>
+    pub env: HashMap<OsString, VarValue>
 }
 
 pub type Script<'a> = Vec<CompleteCommand<'a>>;
@@ -134,12 +141,24 @@ impl<'a> SimpleCommand<'a> {
     fn args(&self) -> Iter<'a, Word> {
         return self.words[1..].iter()
     }
+
+    fn save_variables(&self, ev: &mut ExecEnv) {
+        for (name, val) in self.assignment_words.iter() {
+            ev.env.insert(name.clone(), VarValue { 
+                value: val.clone(), 
+                export: false
+            });
+        }
+    }
  
     fn setup_command(&self, ev: &mut ExecEnv) -> Option<Command> {
 
         let command_name = match self.command_name() {
             Some(command_name) => OsString::from_vec(command_name.eval()),
-            None => return None
+            None => {
+                self.save_variables(ev);
+                return None
+            }
         };
 
         // Convert Vec<u8> into Iter of OsStr
@@ -153,8 +172,12 @@ impl<'a> SimpleCommand<'a> {
         let mut cmd: Command = Command::new(&command_name);
         cmd.args(osargs);
 
-        // Pass environment
-        cmd.envs(&ev.env);
+        // Pass environment if variables marked for export
+        for (name, val) in &ev.env {
+            if val.export{
+                cmd.env(name, &val.value);
+            }
+        }
 
         // Pass assignment words
         for (name, val) in self.assignment_words.iter() {
