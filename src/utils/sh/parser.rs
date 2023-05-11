@@ -60,15 +60,11 @@ fn simple_command(input: &[u8]) -> IResult<&[u8], SimpleCommand> {
     }))
 }
 
-//pub fn assignment_word<'a, E: ParseError<&'a [u8]>>(input: &'a [u8]) -> IResult<&'a [u8], AssignmentWord, E> {
-fn assignment_word(input: &[u8]) -> IResult<&[u8], AssignmentWord> {
+fn assignment_word(input: &[u8]) -> IResult<&[u8], (OsString, OsString)> {
     let (input, tok) = word(input)?;
     let (remaining, name) = take_until1(b"=".as_ref())(tok.text)?;
     let value = &remaining[1..];
-    Ok((input, AssignmentWord {
-        name: OsString::from_vec(name.to_vec()),
-        value: OsString::from_vec(value.to_vec())
-    }))
+    Ok((input, (OsString::from_vec(name.to_vec()), OsString::from_vec(value.to_vec()))))
 }
 
 fn reserved_name(word_name: &[u8]) -> impl Fn(&[u8]) -> IResult<&[u8], ()> + '_ {
@@ -107,19 +103,14 @@ pub fn sh_main(_cmd_name: &str, _args: Vec<OsString>) -> Result<ExitCode, Box<dy
 
 #[cfg(test)]
 mod tests {
-    use nom::IResult;
-    use nom::error;
-    use std::str;
+    use std::ffi::OsString;
 
-    use super::{assignment_word, AssignmentWord, Word};
+    use super::{assignment_word, Word};
 
     #[test]
     fn test_assignment_word() {
         let input = b"foo=bar";
-        let expected = AssignmentWord {
-            name: b"foo".to_vec(),
-            value: b"bar".to_vec()
-        };
+        let expected = (OsString::from("foo"), OsString::from("bar"));
         let (_, actual) = assignment_word(input).unwrap();
         assert_eq!(actual, expected);
     }
@@ -141,7 +132,7 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    use super::{pipeline_sequence, pipeline_segment, reserved_name, PipeLine};
+    use super::{pipeline_sequence, PipeLine};
     #[test]
     fn test_pipeline() {
         let input = b"! ls | grep stuff | cat";

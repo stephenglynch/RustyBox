@@ -115,16 +115,11 @@ impl<'a> PipeLine<'a> {
     }
 }
 
-
-#[derive(Debug, PartialEq)]
-pub struct AssignmentWord {
-    pub name: OsString,
-    pub value: OsString
-}
+pub type AssignmentWords = Vec<(OsString, OsString)>;
 
 #[derive(Debug, PartialEq)]
 pub struct SimpleCommand<'a> {
-    pub assignment_words: Vec<AssignmentWord>,
+    pub assignment_words: AssignmentWords,
     pub words: Vec<Word<'a>>
 }
 
@@ -159,10 +154,13 @@ impl<'a> SimpleCommand<'a> {
         let mut cmd: Command = Command::new(&command_name);
         cmd.args(osargs);
 
-        // Pass assignment words
-        //println!("assignment words: {:?}", ev.env);
+        // Pass environment
         cmd.envs(&ev.env);
-        //cmd.envs(&self.assignment_words);
+
+        // Pass assignment words
+        for (name, val) in self.assignment_words.iter() {
+            cmd.env(name, val);
+        }
 
         Some(cmd)
     }
