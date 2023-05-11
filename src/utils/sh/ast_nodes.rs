@@ -23,8 +23,8 @@ pub struct CompleteCommand<'a> {
 }
 
 impl<'a> CompleteCommand<'a> {
-    pub fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
-        self.expression.execute(&ev)
+    pub fn execute(&self, ev: &mut ExecEnv) -> Result<i32, Box<dyn Error>> {
+        self.expression.execute(ev)
     }   
 }
 
@@ -35,8 +35,8 @@ pub struct Expression<'a> {
 }
 
 impl<'a> Expression<'a> {
-    fn execute(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
-        let mut ret = self.term.execute_pipeline(&ev)?;
+    fn execute(&self, ev: &mut ExecEnv) -> Result<i32, Box<dyn Error>> {
+        let mut ret = self.term.execute_pipeline(ev)?;
         for l in self.seq.iter() {
             let op_res = match l.op {
                 LogicalOp::And => ret == 0,
@@ -44,7 +44,7 @@ impl<'a> Expression<'a> {
             };
             
             if op_res {
-                ret = l.pipeline.execute_pipeline(&ev)?;
+                ret = l.pipeline.execute_pipeline(ev)?;
             } else {
                 break;
             }
@@ -67,11 +67,11 @@ pub struct PipeLine<'a> {
 }
 
 impl<'a> PipeLine<'a> {
-    fn execute_pipeline(&self, ev: &ExecEnv) -> Result<i32, Box<dyn Error>> {
+    fn execute_pipeline(&self, ev: &mut ExecEnv) -> Result<i32, Box<dyn Error>> {
         let mut children = vec![];
         let mut commands: Vec<_> = self.pipesequence
             .iter()
-            .map(|cmd| cmd.setup_command(&ev))
+            .map(|cmd| cmd.setup_command(ev))
             .collect();
 
         commands.reverse();
@@ -136,7 +136,7 @@ impl<'a> SimpleCommand<'a> {
         return self.words[1..].iter()
     }
  
-    fn setup_command(&self, ev: &ExecEnv) -> Option<Command> {
+    fn setup_command(&self, ev: &mut ExecEnv) -> Option<Command> {
 
         let command_name = match self.command_name() {
             Some(command_name) => OsString::from_vec(command_name.eval()),

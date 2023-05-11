@@ -52,13 +52,13 @@ pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn
         Ok((input, cmds)) => (input, cmds)
     };
 
-    let env = ExecEnv {
+    let mut env = ExecEnv {
         argv: OsString::new(),
         env: HashMap::new()
     };
 
     for cmd in cmds {
-        cmd.execute(&env)?;
+        cmd.execute(&mut env)?;
     }
 
     Ok(ExitCode::SUCCESS)
@@ -99,12 +99,12 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
         };
 
         // Execute command
-        let env = ExecEnv {
+        let mut env = ExecEnv {
             argv: OsString::new(),
             env: HashMap::new()
         };
 
-        match cmd_ast.execute(&env) {
+        match cmd_ast.execute(&mut env) {
             Err(e) => {
                 println!("sh: {}", e);
                 println!("input: {:?}", cmd_str);
