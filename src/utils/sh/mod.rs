@@ -53,7 +53,6 @@ pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn
     };
 
     let mut env = ExecEnv {
-        argv: OsString::new(),
         env: HashMap::new()
     };
 
@@ -71,6 +70,13 @@ fn print_ps1() -> Result<(), Box<dyn Error>> {
 }
 
 fn repl() -> Result<ExitCode, Box<dyn Error>> {
+
+    // Create execution environment
+    // TODO: This needs to be inherited
+    let mut env = ExecEnv {
+        env: HashMap::new()
+    };
+
     loop {
         // Print cursor
         // TODO: Need to get this from $PS1
@@ -96,12 +102,6 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
                 continue
             },
             Ok((input, cmd)) => (input, cmd)
-        };
-
-        // Execute command
-        let mut env = ExecEnv {
-            argv: OsString::new(),
-            env: HashMap::new()
         };
 
         match cmd_ast.execute(&mut env) {

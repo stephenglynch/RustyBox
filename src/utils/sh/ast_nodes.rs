@@ -10,7 +10,6 @@ use core::slice::Iter;
 
 #[derive(Debug, PartialEq)]
 pub struct ExecEnv {
-    pub argv: OsString,
     pub env: HashMap<OsString, OsString>
 }
 
