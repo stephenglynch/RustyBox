@@ -10,7 +10,6 @@ use self::ast_nodes::ExecEnv;
 use self::parser::{script, complete_command};
 
 mod parser;
-mod tokenizer;
 mod ast_nodes;
 
 pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
