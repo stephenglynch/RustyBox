@@ -7,7 +7,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 use self::ast_nodes::ExecEnv;
-use self::parser::{script, complete_command};
+use self::parser::Parser;
 
 mod parser;
 mod ast_nodes;
@@ -42,7 +42,8 @@ pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn
         Ok(_) => ()
     }
 
-    let stuff = script(&script_contents);
+    let parser = Parser::new();
+    let stuff = parser.script(&script_contents);
     let (_, cmds) = match stuff {
         Err(e) => {
             println!("sh: {}", e);
@@ -72,9 +73,7 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
 
     // Create execution environment
     // TODO: This needs to be inherited
-    let mut env = ExecEnv {
-        env: HashMap::new()
-    };
+    let mut parser = Parser::new();
 
     loop {
         // Print cursor
@@ -93,7 +92,7 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
         }
 
         // Parse command
-        let r = complete_command(&cmd_str.as_bytes());
+        let r = parser.complete_command(&cmd_str.as_bytes());
         let (_, cmd_ast) = match r {
             Err(e) => {
                 println!("sh: {}", e);
@@ -103,7 +102,7 @@ fn repl() -> Result<ExitCode, Box<dyn Error>> {
             Ok((input, cmd)) => (input, cmd)
         };
 
-        match cmd_ast.execute(&mut env) {
+        match cmd_ast.execute(&mut parser.ev) {
             Err(e) => {
                 println!("sh: {}", e);
                 println!("input: {:?}", cmd_str);
