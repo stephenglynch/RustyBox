@@ -376,219 +376,231 @@ impl Parser {
     // }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::ffi::OsString;
-//     use nom::IResult;
-//     use nom::error;
-//     use std::str;
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+    use nom::IResult;
+    use nom::error;
+    use std::str;
+    use super::*;
 
-//     macro_rules! test_word_token {
-//         ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, tok) = word(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 let tok = tok.eval();
-//                 let tok = str::from_utf8(&tok).unwrap();
-//                 assert_eq!(tok, $expected_tok);
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_word_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = parser.word(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                let tok = tok.eval();
+                let tok = str::from_utf8(&tok).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_log_op_token {
-//         ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, tok) = logical_op(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(tok, $expected_tok);
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_log_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = parser.logical_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_redir_op_token {
-//         ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, tok) = redirection_op(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(tok, $expected_tok);
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_redir_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = parser.redirection_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_iohere_op_token {
-//         ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, tok) = io_here_op(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(tok, $expected_tok);
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_iohere_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = parser.io_here_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_pipe_op_token {
-//         ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, _) = pipe_op(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_pipe_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, _) = parser.pipe_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_sep_op_token {
-//         ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, tok) = seperator_op(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(tok, $expected_tok);
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_sep_op_token {
+        ( $test_name:ident, $test_string:expr, $expected_tok:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, tok) = parser.seperator_op(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(tok, $expected_tok);
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     macro_rules! test_newline_token {
-//         ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
-//             #[test]
-//             fn $test_name() {
-//                 let test_string = $test_string.as_bytes().to_vec();
-//                 let (remaining, _) = newline(&test_string).unwrap();
-//                 let remaining = str::from_utf8(&remaining).unwrap();
-//                 assert_eq!(remaining, $expected_remain);
-//             }
-//         }
-//     }
+    macro_rules! test_newline_token {
+        ( $test_name:ident, $test_string:expr, $expected_remain:expr ) => {
+            #[test]
+            fn $test_name() {
+                let parser = Parser::new();
+                let test_string = $test_string.as_bytes().to_vec();
+                let (remaining, _) = parser.newline(&test_string).unwrap();
+                let remaining = str::from_utf8(&remaining).unwrap();
+                assert_eq!(remaining, $expected_remain);
+            }
+        }
+    }
 
-//     test_word_token!(test_end, "foo", "foo", "");
-//     test_word_token!(test_space, "foo bar", "foo", "bar");
-//     test_word_token!(test_pipe_op, "foo|bar", "foo", "|bar");
-//     test_pipe_op_token!(test_pipe_op2, "|bar", "bar");
-//     test_word_token!(test_op3, "foo&bar", "foo", "&bar");
-//     test_sep_op_token!(test_async_sep_op, "&bar", SeperatorOp::Async, "bar");
-//     test_sep_op_token!(test_seq_sep_op, ";bar", SeperatorOp::Seq, "bar");
-//     test_word_token!(test_op5, "foo;bar", "foo", ";bar");
-//     test_word_token!(test_op7, "foo&&bar", "foo", "&&bar");
-//     test_log_op_token!(test_log_and_op, "&&bar", LogicalOp::And, "bar");
-//     test_word_token!(test_op9, "foo||bar", "foo", "||bar");
-//     test_log_op_token!(test_log_or_op, "||bar", LogicalOp::Or, "bar");
-//     test_word_token!(test_op11, "foo || bar", "foo", "|| bar");
-//     test_log_op_token!(test_log_or_op2, "|| bar", LogicalOp::Or, " bar");
-//     test_word_token!(test_newline, "foo\nbar", "foo", "\nbar");
-//     test_newline_token!(test_newline2, "\nfoo", "foo");
-//     test_newline_token!(test_newline3, "\n\nfoo", "\nfoo");
-//     test_word_token!(test_newline4, "foo\n", "foo", "\n");
-//     test_newline_token!(test_comment, "#foo\nbar", "bar");
-//     test_word_token!(test_comment2, "foo#bar\n", "foo", "\n");
-//     test_iohere_op_token!(test_io_here1, "<<eof", IoHereOp::DLess, "eof");
-//     test_iohere_op_token!(test_io_here2, "<<-eof", IoHereOp::DLessDash, "eof");
-//     test_redir_op_token!(test_redir_op1, ">>afile", RedirectionOp::DGreat, "afile");
-//     test_redir_op_token!(test_redir_op2, ">afile", RedirectionOp::Great, "afile");
-//     test_redir_op_token!(test_redir_op3, ">|afile", RedirectionOp::Clobber, "afile");
-//     test_redir_op_token!(test_redir_op4, "<afile", RedirectionOp::Less, "afile");
+    test_word_token!(test_end, "foo", "foo", "");
+    test_word_token!(test_space, "foo bar", "foo", "bar");
+    test_word_token!(test_pipe_op, "foo|bar", "foo", "|bar");
+    test_pipe_op_token!(test_pipe_op2, "|bar", "bar");
+    test_word_token!(test_op3, "foo&bar", "foo", "&bar");
+    test_sep_op_token!(test_async_sep_op, "&bar", SeperatorOp::Async, "bar");
+    test_sep_op_token!(test_seq_sep_op, ";bar", SeperatorOp::Seq, "bar");
+    test_word_token!(test_op5, "foo;bar", "foo", ";bar");
+    test_word_token!(test_op7, "foo&&bar", "foo", "&&bar");
+    test_log_op_token!(test_log_and_op, "&&bar", LogicalOp::And, "bar");
+    test_word_token!(test_op9, "foo||bar", "foo", "||bar");
+    test_log_op_token!(test_log_or_op, "||bar", LogicalOp::Or, "bar");
+    test_word_token!(test_op11, "foo || bar", "foo", "|| bar");
+    test_log_op_token!(test_log_or_op2, "|| bar", LogicalOp::Or, " bar");
+    test_word_token!(test_newline, "foo\nbar", "foo", "\nbar");
+    test_newline_token!(test_newline2, "\nfoo", "foo");
+    test_newline_token!(test_newline3, "\n\nfoo", "\nfoo");
+    test_word_token!(test_newline4, "foo\n", "foo", "\n");
+    test_newline_token!(test_comment, "#foo\nbar", "bar");
+    test_word_token!(test_comment2, "foo#bar\n", "foo", "\n");
+    test_iohere_op_token!(test_io_here1, "<<eof", IoHereOp::DLess, "eof");
+    test_iohere_op_token!(test_io_here2, "<<-eof", IoHereOp::DLessDash, "eof");
+    test_redir_op_token!(test_redir_op1, ">>afile", RedirectionOp::DGreat, "afile");
+    test_redir_op_token!(test_redir_op2, ">afile", RedirectionOp::Great, "afile");
+    test_redir_op_token!(test_redir_op3, ">|afile", RedirectionOp::Clobber, "afile");
+    test_redir_op_token!(test_redir_op4, "<afile", RedirectionOp::Less, "afile");
 
-//     #[test]
-//     fn test_empty_word() {
-//         let test_string = b"";
-//         let blah = b"".as_ref();
-//         let expected: IResult<&[u8], Word, error::Error<&[u8]>> = Err(
-//             nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
-//         );
-//         let actual_result = word(test_string);
-//         assert_eq!(actual_result, expected);
-//     }
+    #[test]
+    fn test_empty_word() {
+        let parser = Parser::new();
+        let test_string = b"";
+        let blah = b"".as_ref();
+        let expected: IResult<&[u8], Word, error::Error<&[u8]>> = Err(
+            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
+        );
+        let actual_result = parser.word(test_string);
+        assert_eq!(actual_result, expected);
+    }
 
-//     #[test]
-//     fn test_empty_op() {
-//         let test_string = b"";
-//         let blah = b"".as_ref();
-//         let expected = Err(
-//             nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
-//         );
-//         let actual_result = pipe_op(test_string);
-//         assert_eq!(actual_result, expected);
-//     }
+    #[test]
+    fn test_empty_op() {
+        let parser = Parser::new();
+        let test_string = b"";
+        let blah = b"".as_ref();
+        let expected = Err(
+            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
+        );
+        let actual_result = parser.pipe_op(test_string);
+        assert_eq!(actual_result, expected);
+    }
 
-//     // #[test]
-//     // fn test_word_tok() {
-//     //     let test_string = "foo&&bar";
-//     //     let expected_tok = "foo";
-//     //     let expected_remain = "&&bar";
-//     //     let test_string = test_string.as_bytes().to_vec();
-//     //     let (remaining, tok) = word(&test_string).unwrap();
-//     //     let remaining = str::from_utf8(&remaining).unwrap();
-//     //     let tok = str::from_utf8(&tok).unwrap();
-//     //     assert_eq!(tok, expected_tok);
-//     //     assert_eq!(remaining, expected_remain);
-//     // }
+    // #[test]
+    // fn test_word_tok() {
+    //     let test_string = "foo&&bar";
+    //     let expected_tok = "foo";
+    //     let expected_remain = "&&bar";
+    //     let test_string = test_string.as_bytes().to_vec();
+    //     let (remaining, tok) = word(&test_string).unwrap();
+    //     let remaining = str::from_utf8(&remaining).unwrap();
+    //     let tok = str::from_utf8(&tok).unwrap();
+    //     assert_eq!(tok, expected_tok);
+    //     assert_eq!(remaining, expected_remain);
+    // }
 
-//     // #[test]
-//     // fn test_op_tok() {
-//     //     let test_string = "&&bar";
-//     //     let expected_tok = "&&";
-//     //     let expected_remain = "bar";
-//     //     let test_string = test_string.as_bytes().to_vec();
-//     //     let (remaining, tok) = op(&test_string).unwrap();
-//     //     let remaining = str::from_utf8(&remaining).unwrap();
-//     //     let tok = str::from_utf8(&tok).unwrap();
-//     //     assert_eq!(tok, expected_tok);
-//     //     assert_eq!(remaining, expected_remain);
-//     // }
+    // #[test]
+    // fn test_op_tok() {
+    //     let test_string = "&&bar";
+    //     let expected_tok = "&&";
+    //     let expected_remain = "bar";
+    //     let test_string = test_string.as_bytes().to_vec();
+    //     let (remaining, tok) = op(&test_string).unwrap();
+    //     let remaining = str::from_utf8(&remaining).unwrap();
+    //     let tok = str::from_utf8(&tok).unwrap();
+    //     assert_eq!(tok, expected_tok);
+    //     assert_eq!(remaining, expected_remain);
+    // }
 
-//     #[test]
-//     fn test_assignment_word() {
-//         let input = b"foo=bar";
-//         let expected = (OsString::from("foo"), OsString::from("bar"));
-//         let (_, actual) = assignment_word(input).unwrap();
-//         assert_eq!(actual, expected);
-//     }
+    #[test]
+    fn test_assignment_word() {
+        let parser = Parser::new();
+        let input = b"foo=bar";
+        let expected = (OsString::from("foo"), OsString::from("bar"));
+        let (_, actual) = parser.assignment_word(input).unwrap();
+        assert_eq!(actual, expected);
+    }
 
-//     use super::{simple_command, SimpleCommand};
-//     #[test]
-//     fn test_simple_cmd() {
-//         let input = b"echo hello world";
-//         let words = vec![
-//             Word::new(b"echo"),
-//             Word::new(b"hello"),
-//             Word::new(b"world"),
-//         ];
-//         let expected = SimpleCommand {
-//             assignment_words: vec![],
-//             words: words
-//         };
-//         let (_, actual) = simple_command(input).unwrap();
-//         assert_eq!(actual, expected);
-//     }
+    use super::SimpleCommand;
+    #[test]
+    fn test_simple_cmd() {
+        let parser = Parser::new();
+        let input = b"echo hello world";
+        let words = vec![
+            Word::new(b"echo"),
+            Word::new(b"hello"),
+            Word::new(b"world"),
+        ];
+        let expected = SimpleCommand {
+            assignment_words: vec![],
+            words: words
+        };
+        let (_, actual) = parser.simple_command(input).unwrap();
+        assert_eq!(actual, expected);
+    }
 
-//     use super::{pipeline_sequence, PipeLine};
-//     #[test]
-//     fn test_pipeline() {
-//         let input = b"! ls | grep stuff | cat";
-//         let cmds = vec![
-//             simple_command(b"ls").unwrap().1,
-//             simple_command(b"grep stuff").unwrap().1,
-//             simple_command(b"cat").unwrap().1
-//         ];
-//         let expected = PipeLine {
-//             bang: true,
-//             pipesequence: cmds
-//         };
-//         let (_, actual) = pipeline_sequence(input).unwrap();
-//         assert_eq!(actual, expected);
-//     }
-// }
+    use super::PipeLine;
+    #[test]
+    fn test_pipeline() {
+        let parser = Parser::new();
+        let input = b"! ls | grep stuff | cat";
+        let cmds = vec![
+            parser.simple_command(b"ls").unwrap().1,
+            parser.simple_command(b"grep stuff").unwrap().1,
+            parser.simple_command(b"cat").unwrap().1
+        ];
+        let expected = PipeLine {
+            bang: true,
+            pipesequence: cmds
+        };
+        let (_, actual) = parser.pipeline_sequence(input).unwrap();
+        assert_eq!(actual, expected);
+    }
+}
