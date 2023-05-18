@@ -11,7 +11,7 @@ use core::slice::Iter;
 
 #[derive(Debug, PartialEq)]
 pub struct VarValue {
-    pub value: OsString,
+    pub value: Vec<u8>,
     pub export: bool
 }
 
@@ -145,7 +145,7 @@ impl<'a> SimpleCommand<'a> {
     fn save_variables(&self, ev: &mut ExecEnv) {
         for (name, val) in self.assignment_words.iter() {
             ev.env.insert(name.clone(), VarValue { 
-                value: val.clone(), 
+                value: val.clone().into_vec(), 
                 export: false
             });
         }
@@ -175,7 +175,7 @@ impl<'a> SimpleCommand<'a> {
         // Pass environment if variables marked for export
         for (name, val) in &ev.env {
             if val.export{
-                cmd.env(name, &val.value);
+                cmd.env(name, OsStr::from_bytes(&val.value));
             }
         }
 

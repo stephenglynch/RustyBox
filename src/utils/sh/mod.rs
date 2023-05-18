@@ -11,6 +11,7 @@ use self::parser::Parser;
 
 mod parser;
 mod ast_nodes;
+mod expansions;
 
 pub fn sh_main(_cmd_name: &str, args: Vec<OsString>) -> Result<ExitCode, Box<dyn Error>> {
     if args.len() == 0 {
