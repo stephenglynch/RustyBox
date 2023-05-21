@@ -2,10 +2,11 @@ use std::ffi::OsString;
 use std::os::unix::prelude::OsStringExt;
 use nom::{
     bytes::complete::{tag, take_until, is_a},
-    branch::alt,
-    IResult
+    branch::alt
 };
-use crate::utils::sh::ast_nodes::ExecEnv;
+
+use super::error::*;
+use super::ast_nodes::ExecEnv;
 
 pub enum Expandable {
     Text(Vec<u8>),
@@ -27,19 +28,19 @@ impl Expandable {
     }
 }
 
-fn expandable<'a>(input: &'a [u8]) -> IResult<&'a [u8], Expandable> {
+fn expandable<'a>(input: &'a [u8]) -> RbResult<&'a [u8], Expandable> {
     alt((
         text,
         variable
     ))(input)
 }
 
-fn text<'a>(input: &'a [u8]) -> IResult<&'a [u8], Expandable> {
+fn text<'a>(input: &'a [u8]) -> RbResult<&'a [u8], Expandable> {
     let (input, t) = take_until(b"$".as_ref())(input)?;
     Ok((input, Expandable::Text(t.to_vec())))
 }
 
-fn variable<'a>(input: &'a [u8]) -> IResult<&'a [u8], Expandable> {
+fn variable<'a>(input: &'a [u8]) -> RbResult<&'a [u8], Expandable> {
     let name_char_set = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
     let (input, _) = tag(b"$".as_ref())(input)?;
     let (input, name) = is_a(name_char_set.as_ref())(input)?;

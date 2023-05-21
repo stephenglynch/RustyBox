@@ -5,12 +5,11 @@ use nom::{
     bytes::complete::take_until1,
     combinator::{opt, fail},
     multi::many0,
-    error::ErrorKind,
-    IResult
+    error::ErrorKind
 };
 
 use super::ast_nodes::*;
-use crate::utils::sh::ast_nodes::{Word, LogicalOp, RedirectionOp, IoHereOp, SeperatorOp};
+use super::error::*;
 
 
 #[derive(Debug, PartialEq)]
@@ -118,7 +117,7 @@ impl Parser {
         }
     }
 
-    fn raw_token<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], TokenType<'a>> {
+    fn raw_token<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], TokenType<'a>> {
         // Initialise with maximum size of token
         let mut is_operator = false;
         let mut tok_start = 0;
@@ -218,22 +217,22 @@ impl Parser {
             Ok((b"", new_word(&input[tok_start..tok_end])))
         } else {
             Err(nom::Err::Error(
-                nom::error::Error::new(b"", ErrorKind::Fail)
+                RbError::new(ErrorKind::Fail)
             ))
         }
     }
 
-    fn word<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], Word<'a>> {
+    fn word<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], Word<'a>> {
         let (rest, tok) = self.raw_token(input)?;
         match tok {
             TokenType::Word(tok) => Ok((rest, tok)),
             _ => Err(nom::Err::Error(
-                nom::error::Error::new(input, ErrorKind::Fail)
+                RbError::new(ErrorKind::Fail)
             ))
         }
     }
 
-    fn logical_op<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], LogicalOp> {
+    fn logical_op<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], LogicalOp> {
         if let (rest, TokenType::LogicalOp(op)) = self.raw_token(input)? {
             Ok((rest, op))
         } else {
@@ -242,7 +241,7 @@ impl Parser {
     }
 
     #[allow(dead_code)]
-    fn redirection_op<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], RedirectionOp> {
+    fn redirection_op<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], RedirectionOp> {
         if let (rest, TokenType::RedirectionOp(op)) = self.raw_token(input)? {
             Ok((rest, op))
         } else {
@@ -251,7 +250,7 @@ impl Parser {
     }
 
     #[allow(dead_code)]
-    fn io_here_op<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], IoHereOp> {
+    fn io_here_op<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], IoHereOp> {
         if let (rest, TokenType::IoHereOp(op)) = self.raw_token(input)? {
             Ok((rest, op))
         } else {
@@ -259,7 +258,7 @@ impl Parser {
         }
     }
 
-    fn pipe_op<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn pipe_op<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], ()> {
         if let (rest, TokenType::Pipe) = self.raw_token(input)? {
             Ok((rest, ()))
         } else {
@@ -268,7 +267,7 @@ impl Parser {
     }
 
     #[allow(dead_code)]
-    fn seperator_op<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], SeperatorOp> {
+    fn seperator_op<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], SeperatorOp> {
         if let (rest, TokenType::SeperatorOp(op)) = self.raw_token(input)? {
             Ok((rest, op))
         } else {
@@ -276,7 +275,7 @@ impl Parser {
         }
     }
 
-    fn newline<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], ()> {
+    fn newline<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], ()> {
         if let (rest, TokenType::Newline) = self.raw_token(input)? {
             Ok((rest, ()))
         } else {
@@ -285,11 +284,11 @@ impl Parser {
     }
 
 
-    pub fn script<'a>(&'a self, input: &'a [u8]) -> IResult<&'a [u8], Script<'a>> {
+    pub fn script<'a>(&'a self, input: &'a [u8]) -> RbResult<&'a [u8], Script<'a>> {
         many0(|input| self.complete_command(input))(input)
     }
 
-    pub fn complete_command<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], CompleteCommand<'a>> {
+    pub fn complete_command<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], CompleteCommand<'a>> {
         let (input, expr) = self.expression(input)?;
         let (input, _) = self.newline(input)?;
 
@@ -299,7 +298,7 @@ impl Parser {
         }))
     }
 
-    fn expression<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], Expression<'a>> {
+    fn expression<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], Expression<'a>> {
         let (input, pipeline) = self.pipeline_sequence(input)?;
         let (input, logical_seq_list) = self.logical_sequence(input)?;
 
@@ -309,11 +308,11 @@ impl Parser {
         }))
     }
 
-    fn logical_sequence<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], Vec<LogicalSeqElem<'a>>> {
+    fn logical_sequence<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], Vec<LogicalSeqElem<'a>>> {
         many0(|input| self.logical_segment(input))(input)
     }
 
-    fn logical_segment<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], LogicalSeqElem<'a>> {
+    fn logical_segment<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], LogicalSeqElem<'a>> {
         let (input, op) = self.logical_op(input)?;
         let (input, pipeline) = self.pipeline_sequence(input)?;
 
@@ -323,7 +322,7 @@ impl Parser {
         }))
     }
 
-    fn simple_command<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], SimpleCommand<'a>> {
+    fn simple_command<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], SimpleCommand<'a>> {
         let (input, assignment_words) = many0(|input| self.assignment_word(input))(input)?;
         let (input, words) = many0(|input| self.word(input))(input)?;
 
@@ -333,14 +332,14 @@ impl Parser {
         }))
     }
 
-    fn assignment_word<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], (OsString, OsString)> {
+    fn assignment_word<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], (OsString, OsString)> {
         let (input, tok) = self.word(input)?;
         let (remaining, name) = take_until1(b"=".as_ref())(tok.text)?;
         let value = &remaining[1..];
         Ok((input, (OsString::from_vec(name.to_vec()), OsString::from_vec(value.to_vec()))))
     }
 
-    fn reserved_name<'a>(&self, word_name: &'static [u8]) -> Box<dyn Fn(&'a [u8]) -> IResult<&'a [u8], ()> + '_> {
+    fn reserved_name<'a>(&self, word_name: &'static [u8]) -> Box<dyn Fn(&'a [u8]) -> RbResult<&'a [u8], ()> + '_> {
         Box::new(move |input: & [u8]| {
             let (input, tok) = self.word(input)?;
             let tok = tok.eval();
@@ -352,13 +351,13 @@ impl Parser {
         })
     }
 
-    fn pipeline_segment<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], SimpleCommand<'a>> {
+    fn pipeline_segment<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], SimpleCommand<'a>> {
         let (input, _) = self.pipe_op(input)?;
         let (input, cmd) = self.simple_command(input)?;
         Ok((input, cmd))
     }
 
-    fn pipeline_sequence<'a>(&self, input: &'a [u8]) -> IResult<&'a [u8], PipeLine<'a>> {
+    fn pipeline_sequence<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], PipeLine<'a>> {
         let reserved_bang = |input| self.reserved_name(b"!")(input);
         let (input, bang) = opt(reserved_bang)(input)?;
         let (input, cmd0) = self.simple_command(input)?;
@@ -379,7 +378,6 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsString;
-    use nom::IResult;
     use nom::error;
     use std::str;
     use super::*;
@@ -513,9 +511,8 @@ mod tests {
     fn test_empty_word() {
         let parser = Parser::new();
         let test_string = b"";
-        let blah = b"".as_ref();
-        let expected: IResult<&[u8], Word, error::Error<&[u8]>> = Err(
-            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
+        let expected: RbResult<&[u8], Word> = Err(
+            nom::Err::Error(RbError::new(error::ErrorKind::Fail))
         );
         let actual_result = parser.word(test_string);
         assert_eq!(actual_result, expected);
@@ -525,9 +522,8 @@ mod tests {
     fn test_empty_op() {
         let parser = Parser::new();
         let test_string = b"";
-        let blah = b"".as_ref();
         let expected = Err(
-            nom::Err::Error(error::Error::new(blah, error::ErrorKind::Fail))
+            nom::Err::Error(RbError::new(error::ErrorKind::Fail))
         );
         let actual_result = parser.pipe_op(test_string);
         assert_eq!(actual_result, expected);
