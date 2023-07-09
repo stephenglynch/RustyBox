@@ -21,7 +21,8 @@
                 }
             },
             "postRunCommands": ["type format add -f char u8"],
-            "args": ["sh", "${workspaceFolder}/test_script.sh"],
+            //"args": ["sh", "${workspaceFolder}/test_script.sh"],
+            "args": ["sh"],
             "cwd": "${workspaceFolder}"
         },
         {

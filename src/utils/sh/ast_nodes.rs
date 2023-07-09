@@ -7,12 +7,29 @@ use std::process::Command;
 use std::process::Stdio;
 use std::collections::HashMap;
 use core::slice::Iter;
+use nom::multi::many0;
+use super::expansions::expandable;
+use log::*;
 
 
 #[derive(Debug, PartialEq)]
 pub struct VarValue {
     pub value: Vec<u8>,
     pub export: bool
+}
+
+impl VarValue {
+    pub fn new(value: Vec<u8>, export: bool) -> Self {
+        VarValue {value: value, export: export}
+    }
+    
+    pub fn new_no_export(value: Vec<u8>) -> Self {
+        Self::new(value, false)
+    }
+
+    pub fn new_export(value: Vec<u8>) -> Self {
+        Self::new(value, true)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -130,16 +147,16 @@ pub struct SimpleCommand<'a> {
 }
 
 impl<'a> SimpleCommand<'a> {
-    fn command_name(&self) -> Option<&Word> {
-        if self.words.len() > 0 {
-            return Some(&self.words[0])
+    fn command_name<'b>(&self, fields: &'b Vec<Vec<u8>>) -> Option<&'b Vec<u8>> {
+        if fields.len() > 0 {
+            Some(&fields[0])
         } else {
-            return None
+            None
         }
     }
 
-    fn args(&self) -> Iter<'a, Word> {
-        return self.words[1..].iter()
+    fn args<'b>(&self, fields: &'b Vec<Vec<u8>>) -> Iter<'b, Vec<u8>> {
+        fields[1..].iter()
     }
 
     fn save_variables(&self, ev: &mut ExecEnv) {
@@ -150,11 +167,37 @@ impl<'a> SimpleCommand<'a> {
             });
         }
     }
+
+    fn fields(&self, ev: &mut ExecEnv) -> Vec<Vec<u8>> {
+        // Expand each expandable token e.g. variables, text, commands
+        info!("{:?}", self.words);
+        let mut combined = vec![];
+        for w in self.words.iter() {
+            info!("w = {:?}", w);
+            let (_, exps) = many0(expandable)(w.text).unwrap();
+            info!("exps = {:?}", exps);
+            let init = b"".to_vec();
+            let mut expanded = exps.into_iter().fold(init, |mut acc, ex| {
+                let mut expanded = ex.expand(ev);
+                acc.append(&mut expanded);
+                acc
+            });
+            combined.append(&mut expanded);
+        }
+
+        info!("words = {:?}", self.words);
+        info!("combined = {:?}", combined);
+
+        combined.split(|&b| b == b' ').map(|f| f.to_vec()).collect()
+    }
  
     fn setup_command(&self, ev: &mut ExecEnv) -> Option<Command> {
+        let fields = self.fields(ev);
 
-        let command_name = match self.command_name() {
-            Some(command_name) => OsString::from_vec(command_name.eval()),
+        info!("{:?}", fields);
+
+        let command_name = match self.command_name(&fields) {
+            Some(command_name) => OsString::from_vec(command_name.clone()),
             None => {
                 self.save_variables(ev);
                 return None
@@ -162,10 +205,7 @@ impl<'a> SimpleCommand<'a> {
         };
 
         // Convert Vec<u8> into Iter of OsStr
-        let args: Vec<Vec<u8>> = self.args().map(|w| {
-            w.eval()
-        }).collect();
-        let osargs = args.iter().map(|arg| {
+        let osargs = self.args(&fields).map(|arg| {
             OsStr::from_bytes(&arg)
         });
 

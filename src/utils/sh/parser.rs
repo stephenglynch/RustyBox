@@ -10,6 +10,7 @@ use nom::{
 
 use super::ast_nodes::*;
 use super::error::*;
+use super::expansions::*;
 
 
 #[derive(Debug, PartialEq)]
@@ -323,8 +324,23 @@ impl Parser {
     }
 
     fn simple_command<'a>(&self, input: &'a [u8]) -> RbResult<&'a [u8], SimpleCommand<'a>> {
-        let (input, assignment_words) = many0(|input| self.assignment_word(input))(input)?;
-        let (input, words) = many0(|input| self.word(input))(input)?;
+        // let (input, words) = many0(|i| self.word(i))(input)?;
+
+        // // Expand each expandable token e.g. variables, text, commands
+        // let mut combined = vec![];
+        // for w in words {
+        //     let (_, exps) = many0(expandable)(w.text)?;
+        //     let init = b"".to_vec();
+        //     let mut expanded = exps.into_iter().fold(init, |mut acc, ex| {
+        //         let mut expanded = ex.expand(&self.ev);
+        //         acc.append(&mut expanded);
+        //         acc
+        //     });
+        //     combined.append(&mut expanded);
+        // }
+        
+        let (input, assignment_words) = many0(|i| self.assignment_word(i))(input)?;
+        let (input, words) = many0(|i| self.word(i))(input)?;
 
         Ok((input, SimpleCommand {
             assignment_words: assignment_words,
